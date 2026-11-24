@@ -1,0 +1,82 @@
+<Window x:Class="Remote.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="nanoBrick — télécommande (4 récepteurs + boîtier)" Width="900" Height="860" MinWidth="700" MinHeight="600"
+        Background="#EEF0F3" FontFamily="Segoe UI" FontSize="14"
+        KeyDown="SurTouche" Closing="SurFermeture">
+    <DockPanel Margin="8">
+
+        <!-- Connexion -->
+        <GroupBox Header="Connexion à l'émetteur" DockPanel.Dock="Top">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="ChoixSerie" Content="Câble USB (version Arduino)" IsChecked="True"
+                                 VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ComboBox x:Name="ListePorts" Width="90" Margin="0,0,4,0" />
+                    <Button Content="↻" ToolTip="Actualiser la liste des ports" Click="SurActualiserPorts" Padding="8,2" />
+                    <RadioButton x:Name="ChoixBluetooth" Content="Bluetooth « NanoBrick » (version C#)"
+                                 VerticalAlignment="Center" Margin="16,0,0,0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button x:Name="BoutonConnexion" Content="Connecter" Width="130" Click="SurConnexion" />
+                    <Ellipse x:Name="Voyant" Width="12" Height="12" Fill="{StaticResource GrisFonce}" Margin="8,0" />
+                    <TextBlock x:Name="Etat" Text="Non connecté" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Réglages -->
+        <GroupBox Header="Réglages" DockPanel.Dock="Top">
+            <WrapPanel x:Name="Reglages" IsEnabled="False">
+                <TextBlock Text="Crans par appui :" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <ComboBox x:Name="Pas" Width="60" SelectedIndex="1">
+                    <ComboBoxItem Content="1" />
+                    <ComboBoxItem Content="3" />
+                    <ComboBoxItem Content="5" />
+                    <ComboBoxItem Content="10" />
+                </ComboBox>
+                <TextBlock Text="Récepteurs présents :" VerticalAlignment="Center" Margin="16,0,6,0" />
+                <ComboBox x:Name="Servis" Width="90" SelectedIndex="0" SelectionChanged="SurServis">
+                    <ComboBoxItem Content="1" Tag="1" />
+                    <ComboBoxItem Content="1 et 2" Tag="12" />
+                    <ComboBoxItem Content="1 à 3" Tag="123" />
+                    <ComboBoxItem Content="1 à 4" Tag="1234" />
+                </ComboBox>
+                <TextBlock Text="Puissance :" VerticalAlignment="Center" Margin="16,0,6,0" />
+                <ComboBox x:Name="Puissance" Width="150" SelectedIndex="0" SelectionChanged="SurPuissance">
+                    <ComboBoxItem Content="−18 dBm (conseillé)" />
+                    <ComboBoxItem Content="−12 dBm" />
+                    <ComboBoxItem Content="−6 dBm" />
+                    <ComboBoxItem Content="0 dBm (sature de près)" />
+                </ComboBox>
+                <Button Content="État" ToolTip="Demande l'état à l'émetteur (ordre f)" Click="SurEtat" Margin="16,4,4,4" />
+                <Button Content="TOUT ARRÊTER" Style="{StaticResource Stop}" Click="SurToutArreter"
+                        ToolTip="Stop sur toutes les sorties (Espace)" />
+            </WrapPanel>
+        </GroupBox>
+
+        <!-- Boîtier batterie 4 sorties (télécommande blanche) : sorties construites dans le code -->
+        <GroupBox DockPanel.Dock="Top" Background="{StaticResource Gris}">
+            <GroupBox.Header>
+                <TextBlock FontWeight="SemiBold"
+                           Text="Boîtier 4 sorties (télécommande blanche) — maintenir le bouton, pleine vitesse" />
+            </GroupBox.Header>
+            <UniformGrid x:Name="Boitier" Columns="4" IsEnabled="False" />
+        </GroupBox>
+
+        <!-- Journal -->
+        <GroupBox Header="Journal" DockPanel.Dock="Bottom" Height="160">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button DockPanel.Dock="Right" Content="Envoyer" Click="SurOrdreLibre" IsDefault="True" Margin="4,0,0,0" />
+                    <TextBox x:Name="OrdreLibre" VerticalContentAlignment="Center" FontFamily="Consolas"
+                             ToolTip="Ordre libre : 2a+ 3, 4sb, x, k 1, m 12, p 0, f…" />
+                </DockPanel>
+                <ListBox x:Name="Journal" FontFamily="Consolas" FontSize="12" />
+            </DockPanel>
+        </GroupBox>
+
+        <!-- Les 4 récepteurs (construits dans le code) -->
+        <UniformGrid x:Name="Recepteurs" Columns="2" IsEnabled="False" />
+    </DockPanel>
+</Window>

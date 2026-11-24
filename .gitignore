@@ -1,0 +1,12 @@
+# Build outputs
+bin/
+obj/
+build/
+.vs/
+*.user
+
+# nanoFramework NuGet packages (restored)
+src/packages/
+
+# Working notes (not published)
+CLAUDE.md

@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nanoBrick — télécommande</title>
+<style>
+  :root {
+    --bg: #eef0f3; --ink: #1f2328; --muted: #5d6670;
+    --body: #c9ccd1; --body-edge: #a9adb3; --body-dark: #8d9298;
+    --orange: #ff7a3c; --orange-dark: #d85a1f;
+    --knob: #b9bdc3; --ok: #1f9d55; --warn: #c27c0e; --err: #c0392b;
+    --panel: #ffffff; --panel-edge: #d5d9de; --stop: #d33;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181c; --ink: #e8eaed; --muted: #9aa3ad;
+      --body: #9da1a7; --body-edge: #7c8086; --body-dark: #63676d;
+      --panel: #1f2227; --panel-edge: #33373e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181c; --ink: #e8eaed; --muted: #9aa3ad;
+    --body: #9da1a7; --body-edge: #7c8086; --body-dark: #63676d;
+    --panel: #1f2227; --panel-edge: #33373e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 20px 16px 40px;
+    user-select: none; -webkit-user-select: none;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; text-align: center; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+  button.std {
+    font: inherit; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--panel-edge);
+    background: var(--panel); color: var(--ink); cursor: pointer;
+  }
+  button.std.primary { background: var(--orange); border-color: var(--orange-dark); color: #1a1a1a; font-weight: 600; }
+  button.std.danger { background: var(--stop); border-color: #a22; color: #fff; font-weight: 700; }
+  button.std:disabled { opacity: .5; cursor: default; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .led { width: 12px; height: 12px; border-radius: 50%; background: var(--body-dark); }
+  .led.on { background: var(--ok); } .led.wait { background: var(--warn); } .led.err { background: var(--err); }
+  select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--panel-edge); background: var(--panel); color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; width: min(980px, 100%); }
+  .grid.disabled { opacity: .55; pointer-events: none; filter: grayscale(.5); }
+  .card {
+    background: linear-gradient(180deg, var(--body) 0%, var(--body-edge) 100%);
+    border-radius: 18px; padding: 12px 14px 10px; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 -4px 0 var(--body-dark);
+    color: #23262a;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .badge { background: var(--orange); border-radius: 8px; padding: 1px 9px; box-shadow: 0 2px 0 var(--orange-dark); }
+  .out { display: grid; grid-template-columns: 22px auto 44px auto 1fr; align-items: center; gap: 8px; margin: 8px 0; }
+  .out .letter { font-weight: 800; font-size: 18px; text-align: center; }
+  .step {
+    width: 48px; height: 44px; border-radius: 12px; border: 0; cursor: pointer; font: 700 22px system-ui;
+    background: var(--orange); color: #2a1206; box-shadow: 0 4px 0 var(--orange-dark);
+  }
+  .step:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--orange-dark); }
+  .speed { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 20px; text-align: center; }
+  .right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .stop {
+    height: 38px; padding: 0 12px; border-radius: 10px; border: 0; cursor: pointer; font: 700 13px system-ui;
+    background: var(--stop); color: #fff; box-shadow: 0 3px 0 #a22;
+  }
+  .stop:active { transform: translateY(2px); box-shadow: 0 1px 0 #a22; }
+  .flip { font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .flip input { accent-color: var(--orange-dark); }
+
+  .help {
+    width: min(980px, 100%); margin-top: 18px; background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 14px; padding: 12px 16px; color: var(--muted); font-size: 14px;
+  }
+  .help b { color: var(--ink); }
+  kbd { font: 12px ui-monospace, Consolas, monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--panel-edge); color: var(--ink); background: var(--bg); }
+  details { width: min(980px, 100%); margin-top: 12px; }
+  summary { cursor: pointer; color: var(--muted); }
+  pre#log {
+    height: 160px; overflow: auto; margin: 8px 0 0; padding: 10px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--panel-edge); font: 12px/1.45 ui-monospace, Consolas, monospace; user-select: text;
+  }
+  .nosupport { color: var(--err); font-weight: 600; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<h1>nanoBrick — télécommande</h1>
+<p class="sub">4 récepteurs × 2 sorties = 8 moteurs · ESP32 + nRF24 branché en USB (version Arduino)</p>
+
+<p id="nosupport" class="nosupport" hidden>Ce navigateur ne gère pas le port série (Web Serial).<br>Ouvre cette page dans <b>Chrome</b> ou <b>Edge</b>.</p>
+
+<div class="bar">
+  <button id="connect" class="std primary">Connecter l'ESP32</button>
+  <button id="disconnect" class="std" hidden>Déconnecter</button>
+  <span class="status"><span id="led" class="led"></span><span id="state">Non connecté</span></span>
+</div>
+<div class="bar">
+  <label>Crans par appui
+    <select id="pas"><option>1</option><option selected>3</option><option>5</option><option>10</option></select>
+  </label>
+  <label>Récepteurs présents
+    <select id="servis">
+      <option value="1">1</option><option value="12">1 et 2</option><option value="123">1 à 3</option>
+      <option value="1234" selected>1 à 4</option>
+    </select>
+  </label>
+  <button id="stopall" class="std danger" disabled>TOUT ARRÊTER</button>
+</div>
+
+<div id="grid" class="grid disabled"></div>
+
+<div class="help">
+  <b>Chaque récepteur</b> a son sélecteur réglé sur 1, 2, 3 ou 4 et pilote 2 moteurs (sorties A et B).
+  Un appui envoie le nombre de crans choisi ; il en faut une vingtaine pour la pleine vitesse.
+  Le chiffre est une <b>estimation</b> (le récepteur ne renvoie rien).<br>
+  <b>Clavier</b> (récepteur 1) : sortie A <kbd>Z</kbd>/<kbd>S</kbd>, sortie B <kbd>↑</kbd>/<kbd>↓</kbd>,
+  stops <kbd>A</kbd> et <kbd>P</kbd>, tout arrêter <kbd>Espace</kbd>.<br>
+  Tant que la page est connectée, l'ESP32 émet en continu pour les récepteurs présents (lumière fixe).
+  Déconnecte-toi avant de reprendre une vraie télécommande.
+</div>
+
+<details>
+  <summary>Journal de la liaison série</summary>
+  <pre id="log"></pre>
+</details>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const logEl = $('#log');
+function log(msg) {
+  logEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ---------- Les 4 récepteurs ----------
+const speed = {};   // "1a" -> vitesse estimée
+const grid = $('#grid');
+for (let r = 1; r <= 4; r++) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<h2><span class="badge">${r}</span> Récepteur ${r}</h2>` + ['a', 'b'].map((s) => `
+    <div class="out">
+      <span class="letter">${s.toUpperCase()}</span>
+      <button class="step" data-r="${r}" data-s="${s}" data-d="-1" title="Moins vite / arrière">−</button>
+      <span class="speed" id="v${r}${s}">0</span>
+      <button class="step" data-r="${r}" data-s="${s}" data-d="1" title="Plus vite / avant">+</button>
+      <span class="right">
+        <label class="flip"><input type="checkbox" id="f${r}${s}"> ⟲</label>
+        <button class="stop" data-r="${r}" data-s="${s}">STOP</button>
+      </span>
+    </div>`).join('');
+  grid.appendChild(card);
+  speed[r + 'a'] = 0; speed[r + 'b'] = 0;
+}
+
+// ---------- Liaison série ----------
+let port = null, writer = null, reader = null, keepTimer = null, ready = false;
+
+function setState(text, cls) { $('#state').textContent = text; $('#led').className = 'led ' + (cls || ''); }
+
+async function send(line) {
+  if (!writer) return;
+  await writer.write(new TextEncoder().encode(line + '\n'));
+  if (line !== 'k 1') log('→ ' + line);
+}
+
+async function readLoop() {
+  const dec = new TextDecoder();
+  let buf = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value);
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line || line.startsWith('OK') && line.endsWith('k 1')) continue;
+        log('← ' + line);
+        if (line.includes('pret')) onReady();
+        if (line.includes('non detecte')) setState('nRF24 non détecté : vérifie le câblage', 'err');
+        if (line.startsWith('PLEIN')) setState('Trop de crans d\'un coup, ralentis un peu', 'wait');
+      }
+    }
+  } catch (e) { log('lecture : ' + e.message); }
+}
+
+function onReady() {
+  if (ready) return;
+  ready = true;
+  send('m ' + $('#servis').value);
+  send('k 1');
+  clearInterval(keepTimer);
+  keepTimer = setInterval(() => send('k 1'), 5000);
+  setState('Connecté, récepteurs accrochés', 'on');
+  grid.classList.remove('disabled');
+  $('#stopall').disabled = false;
+}
+
+async function connect() {
+  try {
+    port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x10C4 }, { usbVendorId: 0x1A86 }] });
+    await port.open({ baudRate: 115200 });
+    await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+    readLoop();
+    ready = false;
+    setState('Connexion…', 'wait');
+    $('#connect').hidden = true; $('#disconnect').hidden = false;
+    setTimeout(onReady, 1500);  // si l'ESP32 n'a pas redémarré, on ne verra pas « pret »
+  } catch (e) {
+    if (e.name !== 'NotFoundError') setState('Échec : ' + e.message, 'err');
+    log('connexion : ' + e.message);
+    await cleanup();
+  }
+}
+
+async function cleanup() {
+  clearInterval(keepTimer); keepTimer = null;
+  try { if (reader) { await reader.cancel(); reader.releaseLock(); } } catch {}
+  try { if (writer) writer.releaseLock(); } catch {}
+  try { if (port) await port.close(); } catch {}
+  port = writer = reader = null; ready = false;
+  grid.classList.add('disabled');
+  $('#stopall').disabled = true;
+  $('#connect').hidden = false; $('#disconnect').hidden = true;
+}
+
+async function disconnect() {
+  try { await send('k 0'); } catch {}
+  await cleanup();
+  setState('Non connecté', '');
+}
+window.addEventListener('beforeunload', () => { if (writer) writer.write(new TextEncoder().encode('k 0\n')); });
+
+// ---------- Commandes ----------
+function show(key) {
+  const v = speed[key];
+  $('#v' + key).textContent = (v > 0 ? '+' : '') + v;
+}
+
+function click(r, s, dir) {
+  if (!ready) return;
+  const n = +$('#pas').value;
+  const real = $('#f' + r + s).checked ? -dir : dir;
+  send(`${r}${s}${real > 0 ? '+' : '-'} ${n}`);
+  speed[r + s] += dir * n;
+  show(r + s);
+}
+
+function stop(r, s) {
+  if (!ready) return;
+  send(`${r}s${s} 3`);
+  speed[r + s] = 0; show(r + s);
+}
+
+function stopAll() {
+  if (!ready) return;
+  send('x');
+  for (const k in speed) { speed[k] = 0; show(k); }
+}
+
+grid.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.classList.contains('step')) click(b.dataset.r, b.dataset.s, +b.dataset.d);
+  else if (b.classList.contains('stop')) stop(b.dataset.r, b.dataset.s);
+});
+$('#stopall').addEventListener('click', stopAll);
+$('#servis').addEventListener('change', () => send('m ' + $('#servis').value));
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'SELECT') return;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (k === 'z') click(1, 'a', 1);
+  else if (k === 's') click(1, 'a', -1);
+  else if (k === 'ArrowUp') { e.preventDefault(); click(1, 'b', 1); }
+  else if (k === 'ArrowDown') { e.preventDefault(); click(1, 'b', -1); }
+  else if (k === 'a' && !e.repeat) stop(1, 'a');
+  else if (k === 'p' && !e.repeat) stop(1, 'b');
+  else if (k === ' ' && !e.repeat) { e.preventDefault(); stopAll(); }
+});
+
+if (!('serial' in navigator)) { $('#nosupport').hidden = false; $('#connect').disabled = true; }
+$('#connect').addEventListener('click', connect);
+$('#disconnect').addEventListener('click', disconnect);
+</script>
+</body>
+</html>

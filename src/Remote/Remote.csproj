@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Petite IHM Windows pour envoyer les ordres à l'émetteur (version Arduino par câble USB,
+       ou version C# nanoFramework en Bluetooth). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Remote</RootNamespace>
+    <AssemblyTitle>Télécommande LEGO</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="10.0.15" />
+  </ItemGroup>
+
+</Project>
