@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>nanoBrick — télécommande</title>
+<title>nanoBrick — remote</title>
 <style>
   :root {
     --bg: #eef0f3; --ink: #1f2328; --muted: #5d6670;
@@ -88,43 +88,43 @@
 </style>
 </head>
 <body>
-<h1>nanoBrick — télécommande</h1>
-<p class="sub">4 récepteurs × 2 sorties = 8 moteurs · ESP32 + nRF24 branché en USB (version Arduino)</p>
+<h1>nanoBrick — remote</h1>
+<p class="sub">4 receivers × 2 outputs = 8 motors · ESP32 + nRF24 plugged in over USB (Arduino transmitter)</p>
 
-<p id="nosupport" class="nosupport" hidden>Ce navigateur ne gère pas le port série (Web Serial).<br>Ouvre cette page dans <b>Chrome</b> ou <b>Edge</b>.</p>
+<p id="nosupport" class="nosupport" hidden>This browser does not support the serial port (Web Serial).<br>Open this page in <b>Chrome</b> or <b>Edge</b>.</p>
 
 <div class="bar">
-  <button id="connect" class="std primary">Connecter l'ESP32</button>
-  <button id="disconnect" class="std" hidden>Déconnecter</button>
-  <span class="status"><span id="led" class="led"></span><span id="state">Non connecté</span></span>
+  <button id="connect" class="std primary">Connect the ESP32</button>
+  <button id="disconnect" class="std" hidden>Disconnect</button>
+  <span class="status"><span id="led" class="led"></span><span id="state">Not connected</span></span>
 </div>
 <div class="bar">
-  <label>Crans par appui
-    <select id="pas"><option>1</option><option selected>3</option><option>5</option><option>10</option></select>
+  <label>Notches per click
+    <select id="steps"><option>1</option><option selected>3</option><option>5</option><option>10</option></select>
   </label>
-  <label>Récepteurs présents
-    <select id="servis">
-      <option value="1">1</option><option value="12">1 et 2</option><option value="123">1 à 3</option>
-      <option value="1234" selected>1 à 4</option>
+  <label>Receivers present
+    <select id="served">
+      <option value="1" selected>1</option><option value="12">1 and 2</option><option value="123">1 to 3</option>
+      <option value="1234">1 to 4</option>
     </select>
   </label>
-  <button id="stopall" class="std danger" disabled>TOUT ARRÊTER</button>
+  <button id="stopall" class="std danger" disabled>STOP ALL</button>
 </div>
 
 <div id="grid" class="grid disabled"></div>
 
 <div class="help">
-  <b>Chaque récepteur</b> a son sélecteur réglé sur 1, 2, 3 ou 4 et pilote 2 moteurs (sorties A et B).
-  Un appui envoie le nombre de crans choisi ; il en faut une vingtaine pour la pleine vitesse.
-  Le chiffre est une <b>estimation</b> (le récepteur ne renvoie rien).<br>
-  <b>Clavier</b> (récepteur 1) : sortie A <kbd>Z</kbd>/<kbd>S</kbd>, sortie B <kbd>↑</kbd>/<kbd>↓</kbd>,
-  stops <kbd>A</kbd> et <kbd>P</kbd>, tout arrêter <kbd>Espace</kbd>.<br>
-  Tant que la page est connectée, l'ESP32 émet en continu pour les récepteurs présents (lumière fixe).
-  Déconnecte-toi avant de reprendre une vraie télécommande.
+  <b>Each receiver</b> has its selector set to 1, 2, 3 or 4 and drives 2 motors (outputs A and B).
+  A click sends the chosen number of notches; about twenty give full speed.
+  The number is an <b>estimate</b> (the receiver sends nothing back).<br>
+  <b>Keyboard</b> (receiver 1): output A <kbd>W</kbd> or <kbd>Z</kbd> / <kbd>S</kbd>, output B <kbd>↑</kbd>/<kbd>↓</kbd>,
+  stops <kbd>A</kbd> and <kbd>P</kbd>, stop all <kbd>Space</kbd>.<br>
+  While the page is connected, the ESP32 keeps transmitting for the receivers present (steady light).
+  Disconnect before using an original remote again.
 </div>
 
 <details>
-  <summary>Journal de la liaison série</summary>
+  <summary>Serial log</summary>
   <pre id="log"></pre>
 </details>
 
@@ -136,18 +136,18 @@ function log(msg) {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-// ---------- Les 4 récepteurs ----------
-const speed = {};   // "1a" -> vitesse estimée
+// ---------- The 4 receivers ----------
+const speed = {};   // "1a" -> estimated speed
 const grid = $('#grid');
 for (let r = 1; r <= 4; r++) {
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = `<h2><span class="badge">${r}</span> Récepteur ${r}</h2>` + ['a', 'b'].map((s) => `
+  card.innerHTML = `<h2><span class="badge">${r}</span> Receiver ${r}</h2>` + ['a', 'b'].map((s) => `
     <div class="out">
       <span class="letter">${s.toUpperCase()}</span>
-      <button class="step" data-r="${r}" data-s="${s}" data-d="-1" title="Moins vite / arrière">−</button>
+      <button class="step" data-r="${r}" data-s="${s}" data-d="-1" title="Slower / backward">−</button>
       <span class="speed" id="v${r}${s}">0</span>
-      <button class="step" data-r="${r}" data-s="${s}" data-d="1" title="Plus vite / avant">+</button>
+      <button class="step" data-r="${r}" data-s="${s}" data-d="1" title="Faster / forward">+</button>
       <span class="right">
         <label class="flip"><input type="checkbox" id="f${r}${s}"> ⟲</label>
         <button class="stop" data-r="${r}" data-s="${s}">STOP</button>
@@ -157,7 +157,7 @@ for (let r = 1; r <= 4; r++) {
   speed[r + 'a'] = 0; speed[r + 'b'] = 0;
 }
 
-// ---------- Liaison série ----------
+// ---------- Serial link ----------
 let port = null, writer = null, reader = null, keepTimer = null, ready = false;
 
 function setState(text, cls) { $('#state').textContent = text; $('#led').className = 'led ' + (cls || ''); }
@@ -181,22 +181,22 @@ async function readLoop() {
         const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
         if (!line || line.startsWith('OK') && line.endsWith('k 1')) continue;
         log('← ' + line);
-        if (line.includes('pret')) onReady();
-        if (line.includes('non detecte')) setState('nRF24 non détecté : vérifie le câblage', 'err');
-        if (line.startsWith('PLEIN')) setState('Trop de crans d\'un coup, ralentis un peu', 'wait');
+        if (line.includes('ready')) onReady();
+        if (line.includes('not found')) setState('nRF24 not found: check the wiring', 'err');
+        if (line.startsWith('FULL')) setState('Too many notches at once, slow down a bit', 'wait');
       }
     }
-  } catch (e) { log('lecture : ' + e.message); }
+  } catch (e) { log('read: ' + e.message); }
 }
 
 function onReady() {
   if (ready) return;
   ready = true;
-  send('m ' + $('#servis').value);
+  send('m ' + $('#served').value);
   send('k 1');
   clearInterval(keepTimer);
   keepTimer = setInterval(() => send('k 1'), 5000);
-  setState('Connecté, récepteurs accrochés', 'on');
+  setState('Connected, receivers locked', 'on');
   grid.classList.remove('disabled');
   $('#stopall').disabled = false;
 }
@@ -210,12 +210,12 @@ async function connect() {
     reader = port.readable.getReader();
     readLoop();
     ready = false;
-    setState('Connexion…', 'wait');
+    setState('Connecting…', 'wait');
     $('#connect').hidden = true; $('#disconnect').hidden = false;
-    setTimeout(onReady, 1500);  // si l'ESP32 n'a pas redémarré, on ne verra pas « pret »
+    setTimeout(onReady, 1500);  // if the ESP32 did not reboot, its "ready" line will never come
   } catch (e) {
-    if (e.name !== 'NotFoundError') setState('Échec : ' + e.message, 'err');
-    log('connexion : ' + e.message);
+    if (e.name !== 'NotFoundError') setState('Failed: ' + e.message, 'err');
+    log('connect: ' + e.message);
     await cleanup();
   }
 }
@@ -234,11 +234,11 @@ async function cleanup() {
 async function disconnect() {
   try { await send('k 0'); } catch {}
   await cleanup();
-  setState('Non connecté', '');
+  setState('Not connected', '');
 }
 window.addEventListener('beforeunload', () => { if (writer) writer.write(new TextEncoder().encode('k 0\n')); });
 
-// ---------- Commandes ----------
+// ---------- Commands ----------
 function show(key) {
   const v = speed[key];
   $('#v' + key).textContent = (v > 0 ? '+' : '') + v;
@@ -246,7 +246,7 @@ function show(key) {
 
 function click(r, s, dir) {
   if (!ready) return;
-  const n = +$('#pas').value;
+  const n = +$('#steps').value;
   const real = $('#f' + r + s).checked ? -dir : dir;
   send(`${r}${s}${real > 0 ? '+' : '-'} ${n}`);
   speed[r + s] += dir * n;
@@ -272,12 +272,12 @@ grid.addEventListener('click', (e) => {
   else if (b.classList.contains('stop')) stop(b.dataset.r, b.dataset.s);
 });
 $('#stopall').addEventListener('click', stopAll);
-$('#servis').addEventListener('change', () => send('m ' + $('#servis').value));
+$('#served').addEventListener('change', () => send('m ' + $('#served').value));
 
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'SELECT') return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  if (k === 'z') click(1, 'a', 1);
+  if (k === 'w' || k === 'z') click(1, 'a', 1);
   else if (k === 's') click(1, 'a', -1);
   else if (k === 'ArrowUp') { e.preventDefault(); click(1, 'b', 1); }
   else if (k === 'ArrowDown') { e.preventDefault(); click(1, 'b', -1); }

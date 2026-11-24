@@ -1,16 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Teste sur PC la partie « pure » du protocole (Jm039.cs et Boitier.cs, partagés avec le projet nanoFramework). -->
+  <!--
+    Tests the hardware-independent part of the firmware on the PC. The source files are shared with the
+    nanoFramework project (linked, not copied), so the code under test is exactly the code on the ESP32.
+  -->
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\NanoBrick\Jm039.cs" Link="Jm039.cs" />
-    <Compile Include="..\NanoBrick\Boitier.cs" Link="Boitier.cs" />
+    <Compile Include="..\NanoBrick\Protocols\Jm039Protocol.cs" Link="Shared\Jm039Protocol.cs" />
+    <Compile Include="..\NanoBrick\Protocols\BatteryBoxProtocol.cs" Link="Shared\BatteryBoxProtocol.cs" />
+    <Compile Include="..\NanoBrick\Transmission\MotorQueue.cs" Link="Shared\MotorQueue.cs" />
+    <Compile Include="..\NanoBrick\Transmission\ReceiverLink.cs" Link="Shared\ReceiverLink.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
 </Project>

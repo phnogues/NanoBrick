@@ -1,344 +1,385 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Remote.Liaisons;
+using Remote.Connections;
 
 namespace Remote;
 
 /// <summary>
-/// Pilote jusqu'à 4 récepteurs (sélecteur 1 à 4) × 2 sorties (A, B) = 8 moteurs, avec les mêmes ordres
-/// texte que la page tools/JM039TX/remote.html : « 2a+ 3 » (3 crans, récepteur 2, sortie A), « 4sb » (stop),
-/// « x » (tout arrêter), « m 12 » (récepteurs présents), « k 1 » (maintien), « p 0 », « f ».
-/// Plus le boîtier batterie 4 sorties (télécommande blanche) : tout ou rien, la sortie tourne tant qu'on
-/// maintient le bouton (« hd+ 3 » répété, puis « hx d » au relâchement).
+/// Drives up to 4 receivers (selector 1 to 4) × 2 outputs (A, B) = 8 motors with the transmitter's text
+/// commands: "2a+ 3" (3 notches, receiver 2, output A), "4sb" (stop), "x" (stop all), "m 12" (receivers
+/// present), "k 1" (keep-alive), "p 0", "f". Plus the 4-output battery box (white remote): on / off, an
+/// output runs while its button is held ("hd+ 3" repeated, then "hx d" on release).
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly DispatcherTimer _maintien = new() { Interval = TimeSpan.FromSeconds(5) };
-    private readonly Dictionary<string, Sortie> _sorties = new();   // "1a" … "4b"
-    private ILiaison? _liaison;
-    private CancellationTokenSource? _annulation;
+    private const string DefaultPort = "COM5";
+    private const int StopButtonTenths = 3;
+    private const int MaxLogLines = 300;
 
-    // Boîtier : tant qu'un bouton est maintenu, l'ordre (300 ms) est renvoyé toutes les 200 ms
-    private readonly DispatcherTimer _repetitionBoitier = new() { Interval = TimeSpan.FromMilliseconds(200) };
-    private string? _ordreBoitier;    // « hd+ 3 » en cours, ou null
+    private readonly Dictionary<string, ReceiverOutput> _outputs = new();   // "1a" … "4b"
 
-    /// <summary>Une sortie d'un récepteur : un moteur.</summary>
-    private sealed class Sortie
+    // While connected, the transmitter keeps the receivers locked (steady light)
+    private readonly DispatcherTimer _keepAliveTimer = new() { Interval = TimeSpan.FromSeconds(5) };
+
+    // Battery box: while a button is held, its command (300 ms) is sent again every 200 ms
+    private readonly DispatcherTimer _batteryBoxRepeatTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    private string? _heldBatteryBoxCommand;   // e.g. "hd+ 3", or null
+
+    private IConnection? _connection;
+    private CancellationTokenSource? _connectCancellation;
+
+    /// <summary>One output of a receiver, i.e. one motor.</summary>
+    private sealed class ReceiverOutput
     {
-        public required int Recepteur { get; init; }
-        public required char Lettre { get; init; }
-        public required TextBlock Affichage { get; init; }
-        public required CheckBox Inverser { get; init; }
-        public int Vitesse { get; set; }
-        public string Cle => $"{Recepteur}{Lettre}";
+        public required int Receiver { get; init; }
+        public required char Letter { get; init; }
+        public required TextBlock SpeedDisplay { get; init; }
+        public required CheckBox Reverse { get; init; }
+
+        /// <summary>Estimated speed: the receiver sends nothing back, so notches are counted.</summary>
+        public int Speed { get; set; }
+
+        public string Key => $"{Receiver}{Letter}";
     }
 
     public MainWindow()
     {
         InitializeComponent();
-        RemplirPorts();
-        for (int r = 1; r <= 4; r++) Recepteurs.Children.Add(CreerRecepteur(r));
-        foreach (char lettre in "abcd") Boitier.Children.Add(CreerSortieBoitier(lettre));
-        _repetitionBoitier.Tick += async (_, _) =>
+        RefreshPorts();
+
+        for (int receiver = 1; receiver <= 4; receiver++) ReceiversPanel.Children.Add(CreateReceiverCard(receiver));
+        foreach (char letter in "abcd") BatteryBoxPanel.Children.Add(CreateBatteryBoxOutput(letter));
+
+        _keepAliveTimer.Tick += async (_, _) => await SendAsync("k 1", log: false);
+        _batteryBoxRepeatTimer.Tick += async (_, _) =>
         {
-            if (_ordreBoitier is not null) await EnvoyerAsync(_ordreBoitier, journaliser: false);
+            if (_heldBatteryBoxCommand is not null) await SendAsync(_heldBatteryBoxCommand, log: false);
         };
-        // Tant qu'on est connecté, l'émetteur garde les récepteurs « accrochés » (lumière fixe)
-        _maintien.Tick += async (_, _) => await EnvoyerAsync("k 1", journaliser: false);
     }
 
-    // ---------- Construction de l'IHM ----------
+    private bool IsConnected => _connection is not null;
 
-    private GroupBox CreerRecepteur(int r)
+    // ---------- UI construction ----------
+
+    private GroupBox CreateReceiverCard(int receiver)
     {
-        var pile = new StackPanel();
-        foreach (char lettre in "ab") pile.Children.Add(CreerSortie(r, lettre));
+        var outputs = new StackPanel();
+        foreach (char letter in "ab") outputs.Children.Add(CreateReceiverOutput(receiver, letter));
+
         return new GroupBox
         {
-            Header = new TextBlock { Text = $"Récepteur {r}  (sélecteur sur {r})", FontWeight = FontWeights.SemiBold },
-            Content = pile,
-            Background = (Brush)FindResource("Gris"),
+            Header = new TextBlock { Text = $"Receiver {receiver}  (selector on {receiver})", FontWeight = FontWeights.SemiBold },
+            Content = outputs,
+            Background = (Brush)FindResource("GreyBrush"),
         };
     }
 
-    private DockPanel CreerSortie(int r, char lettre)
+    private DockPanel CreateReceiverOutput(int receiver, char letter)
     {
-        var affichage = new TextBlock
+        var speedDisplay = new TextBlock
         {
             Text = "0", Width = 52, FontSize = 24, FontWeight = FontWeights.Bold,
             TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
         };
-        var inverser = new CheckBox { Content = "⟲", ToolTip = "Inverser le sens", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) };
-        var sortie = new Sortie { Recepteur = r, Lettre = lettre, Affichage = affichage, Inverser = inverser };
-        _sorties[sortie.Cle] = sortie;
-
-        Button Bouton(string texte, string style, RoutedEventHandler clic, string aide)
+        var reverse = new CheckBox
         {
-            var b = new Button { Content = texte, Style = (Style)FindResource(style), ToolTip = aide };
-            b.Click += clic;
-            return b;
-        }
+            Content = "⟲", ToolTip = "Reverse the direction",
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0),
+        };
+        var output = new ReceiverOutput { Receiver = receiver, Letter = letter, SpeedDisplay = speedDisplay, Reverse = reverse };
+        _outputs[output.Key] = output;
 
-        var ligne = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
-        var titre = new TextBlock { Text = char.ToUpper(lettre).ToString(), FontSize = 20, FontWeight = FontWeights.Bold, Width = 24, VerticalAlignment = VerticalAlignment.Center };
-        var stop = Bouton("STOP", "Stop", async (_, _) => await StopAsync(sortie), $"Stop récepteur {r}, sortie {char.ToUpper(lettre)}");
+        string name = char.ToUpper(letter).ToString();
+        var stop = CreateButton("STOP", "StopButton", $"Stop receiver {receiver}, output {name}", async () => await StopAsync(output));
         stop.Width = 80;
         DockPanel.SetDock(stop, Dock.Right);
-        DockPanel.SetDock(inverser, Dock.Right);
-        ligne.Children.Add(titre);
-        ligne.Children.Add(stop);
-        ligne.Children.Add(inverser);
-        var centre = new StackPanel { Orientation = Orientation.Horizontal };
-        centre.Children.Add(Bouton("−", "Molette", async (_, _) => await CransAsync(sortie, -1), "Moins vite / arrière"));
-        centre.Children.Add(affichage);
-        centre.Children.Add(Bouton("+", "Molette", async (_, _) => await CransAsync(sortie, 1), "Plus vite / avant"));
-        ligne.Children.Add(centre);
-        return ligne;
+        DockPanel.SetDock(reverse, Dock.Right);
+
+        var wheel = new StackPanel { Orientation = Orientation.Horizontal };
+        wheel.Children.Add(CreateButton("−", "WheelButton", "Slower / backward", async () => await StepAsync(output, -1)));
+        wheel.Children.Add(speedDisplay);
+        wheel.Children.Add(CreateButton("+", "WheelButton", "Faster / forward", async () => await StepAsync(output, 1)));
+
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+        row.Children.Add(new TextBlock { Text = name, FontSize = 20, FontWeight = FontWeights.Bold, Width = 24, VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(stop);
+        row.Children.Add(reverse);
+        row.Children.Add(wheel);
+        return row;
     }
 
-    // Une sortie du boîtier : ◀ et ▶ à maintenir enfoncés (comme la télécommande blanche)
-    private StackPanel CreerSortieBoitier(char lettre)
+    // A battery box output: ◀ and ▶ must be held down, like on the white remote
+    private StackPanel CreateBatteryBoxOutput(char letter)
     {
-        var ligne = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(4) };
-        Button Bouton(string texte, char sens)
+        string name = char.ToUpper(letter).ToString();
+
+        Button CreateHoldButton(string text, char direction)
         {
-            var b = new Button { Content = texte, Style = (Style)FindResource("Molette"), ToolTip = $"Sortie {char.ToUpper(lettre)} : maintenir pour tourner" };
-            b.PreviewMouseLeftButtonDown += async (_, _) => await BoitierAppuyerAsync($"h{lettre}{sens} 3");
-            b.PreviewMouseLeftButtonUp += async (_, _) => await BoitierRelacherAsync(lettre);
-            b.MouseLeave += async (_, _) => { if (_ordreBoitier?[1] == lettre) await BoitierRelacherAsync(lettre); };
-            return b;
+            var button = new Button { Content = text, Style = (Style)FindResource("WheelButton"), ToolTip = $"Output {name}: hold to run" };
+            button.PreviewMouseLeftButtonDown += async (_, _) => await PressBatteryBoxAsync($"h{letter}{direction} 3");
+            button.PreviewMouseLeftButtonUp += async (_, _) => await ReleaseBatteryBoxAsync(letter);
+            button.MouseLeave += async (_, _) =>
+            {
+                if (_heldBatteryBoxCommand?[1] == letter) await ReleaseBatteryBoxAsync(letter);
+            };
+            return button;
         }
-        ligne.Children.Add(Bouton("◀", '-'));
-        ligne.Children.Add(new TextBlock { Text = char.ToUpper(lettre).ToString(), FontSize = 22, FontWeight = FontWeights.Bold, Width = 32, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-        ligne.Children.Add(Bouton("▶", '+'));
-        return ligne;
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(4) };
+        row.Children.Add(CreateHoldButton("◀", '-'));
+        row.Children.Add(new TextBlock { Text = name, FontSize = 22, FontWeight = FontWeights.Bold, Width = 32, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(CreateHoldButton("▶", '+'));
+        return row;
     }
 
-    private async Task BoitierAppuyerAsync(string ordre)
+    private Button CreateButton(string text, string styleKey, string toolTip, Action onClick)
     {
-        if (_liaison is null) return;
-        _ordreBoitier = ordre;
-        await EnvoyerAsync(ordre);
-        _repetitionBoitier.Start();
+        var button = new Button { Content = text, Style = (Style)FindResource(styleKey), ToolTip = toolTip };
+        button.Click += (_, _) => onClick();
+        return button;
     }
 
-    private async Task BoitierRelacherAsync(char lettre)
+    // ---------- Connection ----------
+
+    private void RefreshPorts()
     {
-        if (_ordreBoitier is null) return;
-        _ordreBoitier = null;
-        _repetitionBoitier.Stop();
-        await EnvoyerAsync($"hx {lettre}");
+        string[] ports = SerialConnection.AvailablePorts();
+        PortList.ItemsSource = ports;
+        PortList.SelectedItem = ports.Contains(DefaultPort) ? DefaultPort : ports.LastOrDefault();
     }
 
-    // ---------- Connexion ----------
+    private void OnRefreshPorts(object sender, RoutedEventArgs e) => RefreshPorts();
 
-    private void RemplirPorts()
+    private async void OnConnectClick(object sender, RoutedEventArgs e)
     {
-        string[] ports = LiaisonSerie.PortsDisponibles();
-        ListePorts.ItemsSource = ports;
-        ListePorts.SelectedItem = ports.Contains("COM5") ? "COM5" : ports.LastOrDefault();
-    }
-
-    private void SurActualiserPorts(object sender, RoutedEventArgs e) => RemplirPorts();
-
-    private async void SurConnexion(object sender, RoutedEventArgs e)
-    {
-        if (_liaison is not null)
+        if (IsConnected)
         {
-            await DeconnecterAsync();
+            await DisconnectAsync();
             return;
         }
 
-        ILiaison liaison;
-        if (ChoixSerie.IsChecked == true)
+        IConnection connection;
+        if (SerialOption.IsChecked == true)
         {
-            if (ListePorts.SelectedItem is not string port)
+            if (PortList.SelectedItem is not string port)
             {
-                AfficherEtat("Choisis un port COM", Brushes.OrangeRed);
+                ShowStatus("Choose a COM port", Brushes.OrangeRed);
                 return;
             }
-            liaison = new LiaisonSerie(port);
+            connection = new SerialConnection(port);
         }
         else
         {
-            liaison = new LiaisonBluetooth();
+            connection = new BluetoothConnection();
         }
 
-        BoutonConnexion.IsEnabled = false;
-        AfficherEtat($"Connexion par {liaison.Description}…", Brushes.Orange);
-        _annulation = new CancellationTokenSource();
+        ConnectButton.IsEnabled = false;
+        ShowStatus($"Connecting over {connection.Description}…", Brushes.Orange);
+        _connectCancellation = new CancellationTokenSource();
         try
         {
-            liaison.LigneRecue += ligne => Dispatcher.BeginInvoke(() => Journaliser("← " + ligne));
-            liaison.Perdue += () => Dispatcher.BeginInvoke(async () =>
+            connection.LineReceived += line => Dispatcher.BeginInvoke(() => AddToLog("← " + line));
+            connection.Lost += () => Dispatcher.BeginInvoke(async () =>
             {
-                if (_liaison == liaison)
-                {
-                    Journaliser("Liaison perdue");
-                    await DeconnecterAsync();
-                }
+                if (_connection != connection) return;
+                AddToLog("Connection lost");
+                await DisconnectAsync();
             });
-            await liaison.ConnecterAsync(_annulation.Token);
-            _liaison = liaison;
+            await connection.ConnectAsync(_connectCancellation.Token);
+            _connection = connection;
         }
         catch (Exception ex)
         {
-            await liaison.DisposeAsync();
-            AfficherEtat("Échec : " + ex.Message, Brushes.Red);
-            Journaliser("Échec de connexion : " + ex.Message);
-            BoutonConnexion.IsEnabled = true;
+            await connection.DisposeAsync();
+            ShowStatus("Failed: " + ex.Message, Brushes.Red);
+            AddToLog("Connection failed: " + ex.Message);
+            ConnectButton.IsEnabled = true;
             return;
         }
 
-        BoutonConnexion.Content = "Déconnecter";
-        BoutonConnexion.IsEnabled = true;
-        Recepteurs.IsEnabled = Reglages.IsEnabled = Boitier.IsEnabled = true;
-        ChoixSerie.IsEnabled = ChoixBluetooth.IsEnabled = ListePorts.IsEnabled = false;
-        AfficherEtat($"Connecté par {liaison.Description}", Brushes.ForestGreen);
+        ConnectButton.Content = "Disconnect";
+        ConnectButton.IsEnabled = true;
+        SetControlsEnabled(true);
+        ShowStatus($"Connected over {connection.Description}", Brushes.ForestGreen);
 
-        await EnvoyerAsync("m " + RecepteursServis());
-        await EnvoyerAsync("p " + Puissance.SelectedIndex);
-        await EnvoyerAsync("k 1");
-        _maintien.Start();
+        await SendAsync("m " + SelectedReceivers());
+        await SendAsync("p " + PowerLevel.SelectedIndex);
+        await SendAsync("k 1");
+        _keepAliveTimer.Start();
     }
 
-    private async Task DeconnecterAsync()
+    private async Task DisconnectAsync()
     {
-        _maintien.Stop();
-        _repetitionBoitier.Stop();
-        _ordreBoitier = null;
-        ILiaison? liaison = _liaison;
-        _liaison = null;
-        if (liaison is not null)
+        _keepAliveTimer.Stop();
+        _batteryBoxRepeatTimer.Stop();
+        _heldBatteryBoxCommand = null;
+
+        IConnection? connection = _connection;
+        _connection = null;
+        if (connection is not null)
         {
-            try { await liaison.EnvoyerAsync("k 0"); } catch { /* déjà coupée */ }
-            await liaison.DisposeAsync();
+            try
+            {
+                await connection.SendAsync("k 0");   // hand control back to the original remotes
+            }
+            catch
+            {
+                // Already disconnected
+            }
+            await connection.DisposeAsync();
         }
-        _annulation?.Cancel();
+        _connectCancellation?.Cancel();
 
-        BoutonConnexion.Content = "Connecter";
-        BoutonConnexion.IsEnabled = true;
-        Recepteurs.IsEnabled = Reglages.IsEnabled = Boitier.IsEnabled = false;
-        ChoixSerie.IsEnabled = ChoixBluetooth.IsEnabled = ListePorts.IsEnabled = true;
-        AfficherEtat("Non connecté", (Brush)FindResource("GrisFonce"));
+        ConnectButton.Content = "Connect";
+        ConnectButton.IsEnabled = true;
+        SetControlsEnabled(false);
+        ShowStatus("Not connected", (Brush)FindResource("DarkGreyBrush"));
     }
 
-    private async void SurFermeture(object? sender, System.ComponentModel.CancelEventArgs e)
+    private void SetControlsEnabled(bool connected)
     {
-        if (_liaison is null) return;
-        e.Cancel = true;            // on rend d'abord la main aux vraies télécommandes (k 0)
-        await DeconnecterAsync();
+        ReceiversPanel.IsEnabled = SettingsPanel.IsEnabled = BatteryBoxPanel.IsEnabled = connected;
+        SerialOption.IsEnabled = BluetoothOption.IsEnabled = PortList.IsEnabled = !connected;
+    }
+
+    private async void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (!IsConnected) return;
+        e.Cancel = true;   // disconnect cleanly first (k 0), then close for real
+        await DisconnectAsync();
         Close();
     }
 
-    // ---------- Commandes ----------
+    // ---------- Commands ----------
 
-    private int CransParAppui() => int.Parse((string)((ComboBoxItem)Pas.SelectedItem).Content);
+    private int StepsPerClickValue() => int.Parse((string)((ComboBoxItem)StepsPerClick.SelectedItem).Content);
 
-    private string RecepteursServis() => (string)((ComboBoxItem)Servis.SelectedItem).Tag;
+    private string SelectedReceivers() => (string)((ComboBoxItem)PresentReceivers.SelectedItem).Tag;
 
-    private async Task CransAsync(Sortie s, int sens)
+    private async Task StepAsync(ReceiverOutput output, int direction)
     {
-        if (_liaison is null) return;
-        int n = CransParAppui();
-        int sensReel = s.Inverser.IsChecked == true ? -sens : sens;
-        await EnvoyerAsync($"{s.Cle}{(sensReel > 0 ? "+" : "-")} {n}");
-        s.Vitesse += sens * n;   // le récepteur ne renvoie rien : on estime en comptant les crans
-        Afficher(s);
+        if (!IsConnected) return;
+        int steps = StepsPerClickValue();
+        int wireDirection = output.Reverse.IsChecked == true ? -direction : direction;
+        await SendAsync($"{output.Key}{(wireDirection > 0 ? "+" : "-")} {steps}");
+        output.Speed += direction * steps;
+        UpdateSpeedDisplay(output);
     }
 
-    private async Task StopAsync(Sortie s)
+    private async Task StopAsync(ReceiverOutput output)
     {
-        if (_liaison is null) return;
-        await EnvoyerAsync($"{s.Recepteur}s{s.Lettre} 3");
-        s.Vitesse = 0;
-        Afficher(s);
+        if (!IsConnected) return;
+        await SendAsync($"{output.Receiver}s{output.Letter} {StopButtonTenths}");
+        output.Speed = 0;
+        UpdateSpeedDisplay(output);
     }
 
-    private async Task ToutArreterAsync()
+    private async Task StopAllAsync()
     {
-        if (_liaison is null) return;
-        _repetitionBoitier.Stop();
-        _ordreBoitier = null;
-        await EnvoyerAsync("x");
-        foreach (Sortie s in _sorties.Values)
+        if (!IsConnected) return;
+        _batteryBoxRepeatTimer.Stop();
+        _heldBatteryBoxCommand = null;
+        await SendAsync("x");
+        foreach (ReceiverOutput output in _outputs.Values)
         {
-            s.Vitesse = 0;
-            Afficher(s);
+            output.Speed = 0;
+            UpdateSpeedDisplay(output);
         }
     }
 
-    private async void SurToutArreter(object sender, RoutedEventArgs e) => await ToutArreterAsync();
-
-    private async void SurServis(object sender, SelectionChangedEventArgs e)
+    private async Task PressBatteryBoxAsync(string command)
     {
-        if (_liaison is not null) await EnvoyerAsync("m " + RecepteursServis());
+        if (!IsConnected) return;
+        _heldBatteryBoxCommand = command;
+        await SendAsync(command);
+        _batteryBoxRepeatTimer.Start();
     }
 
-    private async void SurPuissance(object sender, SelectionChangedEventArgs e)
+    private async Task ReleaseBatteryBoxAsync(char letter)
     {
-        if (_liaison is not null) await EnvoyerAsync("p " + Puissance.SelectedIndex);
+        if (_heldBatteryBoxCommand is null) return;
+        _heldBatteryBoxCommand = null;
+        _batteryBoxRepeatTimer.Stop();
+        await SendAsync($"hx {letter}");
     }
 
-    private async void SurEtat(object sender, RoutedEventArgs e) => await EnvoyerAsync("f");
+    private async void OnStopAllClick(object sender, RoutedEventArgs e) => await StopAllAsync();
 
-    private async void SurOrdreLibre(object sender, RoutedEventArgs e)
+    private async void OnPresentReceiversChanged(object sender, SelectionChangedEventArgs e)
     {
-        string ordre = OrdreLibre.Text.Trim();
-        if (ordre.Length == 0 || _liaison is null) return;
-        await EnvoyerAsync(ordre);
-        OrdreLibre.Clear();
+        if (IsConnected) await SendAsync("m " + SelectedReceivers());
     }
 
-    // Clavier, comme la page web (récepteur 1) : Z/S sortie A, ↑/↓ sortie B, A et P stops, Espace tout arrêter
-    private async void SurTouche(object sender, KeyEventArgs e)
+    private async void OnPowerLevelChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_liaison is null || OrdreLibre.IsKeyboardFocusWithin) return;
+        if (IsConnected) await SendAsync("p " + PowerLevel.SelectedIndex);
+    }
+
+    private async void OnStatusClick(object sender, RoutedEventArgs e) => await SendAsync("f");
+
+    private async void OnSendRawCommand(object sender, RoutedEventArgs e)
+    {
+        string command = RawCommand.Text.Trim();
+        if (command.Length == 0 || !IsConnected) return;
+        await SendAsync(command);
+        RawCommand.Clear();
+    }
+
+    // Keyboard shortcuts for receiver 1: W or Z / S = output A, ↑ / ↓ = output B, A and P = stops, Space = stop all
+    private async void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!IsConnected || RawCommand.IsKeyboardFocusWithin) return;
         switch (e.Key)
         {
-            case Key.Z: await CransAsync(_sorties["1a"], 1); break;
-            case Key.S: await CransAsync(_sorties["1a"], -1); break;
-            case Key.Up: await CransAsync(_sorties["1b"], 1); e.Handled = true; break;
-            case Key.Down: await CransAsync(_sorties["1b"], -1); e.Handled = true; break;
-            case Key.A: await StopAsync(_sorties["1a"]); break;
-            case Key.P: await StopAsync(_sorties["1b"]); break;
-            case Key.Space: await ToutArreterAsync(); e.Handled = true; break;
+            case Key.W:
+            case Key.Z: await StepAsync(_outputs["1a"], 1); break;
+            case Key.S: await StepAsync(_outputs["1a"], -1); break;
+            case Key.Up: await StepAsync(_outputs["1b"], 1); e.Handled = true; break;
+            case Key.Down: await StepAsync(_outputs["1b"], -1); e.Handled = true; break;
+            case Key.A: await StopAsync(_outputs["1a"]); break;
+            case Key.P: await StopAsync(_outputs["1b"]); break;
+            case Key.Space: await StopAllAsync(); e.Handled = true; break;
         }
     }
 
-    // ---------- Outils ----------
+    // ---------- Helpers ----------
 
-    private async Task EnvoyerAsync(string ordre, bool journaliser = true)
+    private async Task SendAsync(string command, bool log = true)
     {
-        if (_liaison is null) return;
-        if (journaliser) Journaliser("→ " + ordre);
+        if (_connection is null) return;
+        if (log) AddToLog("→ " + command);
         try
         {
-            await _liaison.EnvoyerAsync(ordre);
+            await _connection.SendAsync(command);
         }
         catch (Exception ex)
         {
-            Journaliser("Erreur d'envoi : " + ex.Message);
+            AddToLog("Send error: " + ex.Message);
         }
     }
 
-    private void Journaliser(string message)
+    private void AddToLog(string message)
     {
-        // Les réponses au maintien encombrent le journal : on les masque
-        if (message.StartsWith("← OK") && (message.EndsWith("k 1") || message.EndsWith(" 3") && message.Contains("OK h"))) return;
-        Journal.Items.Add($"{DateTime.Now:HH:mm:ss}  {message}");
-        if (Journal.Items.Count > 300) Journal.Items.RemoveAt(0);
-        Journal.ScrollIntoView(Journal.Items[^1]);
+        if (IsRepetitiveAnswer(message)) return;
+        Log.Items.Add($"{DateTime.Now:HH:mm:ss}  {message}");
+        if (Log.Items.Count > MaxLogLines) Log.Items.RemoveAt(0);
+        Log.ScrollIntoView(Log.Items[^1]);
     }
 
-    private void AfficherEtat(string texte, Brush couleur)
+    // Answers to the keep-alive and to held battery box buttons would flood the log
+    private static bool IsRepetitiveAnswer(string message) =>
+        message == "← OK k 1" || (message.StartsWith("← OK h") && message.EndsWith(" 3"));
+
+    private void ShowStatus(string text, Brush color)
     {
-        Etat.Text = texte;
-        Voyant.Fill = couleur;
+        StatusText.Text = text;
+        StatusLight.Fill = color;
     }
 
-    private static void Afficher(Sortie s) => s.Affichage.Text = s.Vitesse > 0 ? "+" + s.Vitesse : s.Vitesse.ToString();
+    private static void UpdateSpeedDisplay(ReceiverOutput output) =>
+        output.SpeedDisplay.Text = output.Speed > 0 ? "+" + output.Speed : output.Speed.ToString();
 }

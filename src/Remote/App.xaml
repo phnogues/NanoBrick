@@ -3,25 +3,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <SolidColorBrush x:Key="Orange" Color="#FF7A3C" />
-        <SolidColorBrush x:Key="OrangeFonce" Color="#D85A1F" />
-        <SolidColorBrush x:Key="Gris" Color="#C9CCD1" />
-        <SolidColorBrush x:Key="GrisFonce" Color="#8D9298" />
+        <SolidColorBrush x:Key="OrangeBrush" Color="#FF7A3C" />
+        <SolidColorBrush x:Key="DarkOrangeBrush" Color="#D85A1F" />
+        <SolidColorBrush x:Key="GreyBrush" Color="#C9CCD1" />
+        <SolidColorBrush x:Key="DarkGreyBrush" Color="#8D9298" />
 
         <Style TargetType="Button">
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Margin" Value="4" />
             <Setter Property="FontSize" Value="14" />
         </Style>
-        <Style x:Key="Molette" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style x:Key="WheelButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="64" />
             <Setter Property="Height" Value="56" />
             <Setter Property="FontSize" Value="26" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Background" Value="{StaticResource Orange}" />
-            <Setter Property="BorderBrush" Value="{StaticResource OrangeFonce}" />
+            <Setter Property="Background" Value="{StaticResource OrangeBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DarkOrangeBrush}" />
         </Style>
-        <Style x:Key="Stop" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style x:Key="StopButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="140" />
             <Setter Property="Height" Value="40" />
             <Setter Property="FontWeight" Value="Bold" />

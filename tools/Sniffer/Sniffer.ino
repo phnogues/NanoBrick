@@ -1,28 +1,28 @@
-// Renifleur 2,4 GHz : ESP32 + nRF24L01+ en ecoute, pour capturer ce qu'envoie une telecommande.
-// Meme cablage que JM039TX.ino (CE->4, CSN->5, SCK->18, MISO->19, MOSI->23).
+// 2.4 GHz sniffer: ESP32 + nRF24L01+ listening, to capture what a toy remote sends.
+// Same wiring as the transmitter (CE->4, CSN->5, SCK->18, MISO->19, MOSI->23).
 //
-// Principe : le nRF24 n'accepte que les paquets dont l'adresse correspond a la sienne. On lui donne comme
-// adresse le preambule d'une puce XN297 (71 0F 55) : il recoit alors tout ce qu'emet une XN297 (ou un clone),
-// quel que soit l'appareil. CRC du nRF desactive, 32 octets bruts par paquet, analyse faite sur PC.
+// How it works: the nRF24 only accepts packets whose address matches its own. Giving it the preamble of an
+// XN297 chip (71 0F 55) as its address makes it receive everything an XN297 (or a clone) sends, whatever the
+// device. nRF24 CRC disabled, 32 raw bytes per packet, analysis done on the PC.
 //
-// Commandes (moniteur serie 115200, fin de ligne LF) :
-//   s            scan : tous les canaux 0..125 aux 3 debits, affiche le nombre de paquets par canal
-//   t <sec>      balayages repetes a 1 Mbit/s pendant <sec> s, nombre de paquets par canal a la fin
-//   d <r> <ch>   dump : affiche les paquets du canal ch au debit r (1 = 1 Mbit/s, 2 = 2 Mbit/s, 0 = 250 kbit/s)
-//   h <r> c1 c2 ...  dump en sautant de canal en canal (jusqu'a 8 canaux, 20 ms chacun)
-//   r <sec>      energie : balaye les canaux pendant <sec> secondes et compte, par canal, les fois ou le nRF24
-//                detecte un signal fort (> -64 dBm, registre RPD), quel que soit le protocole
-//   a <v>        adresse d'ecoute : 0 = preambule XN297 (defaut) ; 1..4 = astuce « promiscuous » nRF24
-//                (adresse de 2 octets 00AA / AA00 / 0055 / 5500 : capte le preambule de toute puce nRF24-compatible,
-//                avec beaucoup de bruit, les vraies trames se reperent parce qu'elles se repetent)
-//                5 = adresse exacte de la telecommande grise JM039TX (88 B4 87 2E CB) : plus de bruit
+// Commands (serial monitor 115200 baud, LF line ending):
+//   s            scan: every channel 0..125 at the 3 data rates, prints the packet count per channel
+//   t <sec>      repeated 1 Mbit/s sweeps for <sec> s, packet count per channel at the end
+//   d <r> <ch>   dump: prints the packets of channel ch at rate r (1 = 1 Mbit/s, 2 = 2 Mbit/s, 0 = 250 kbit/s)
+//   h <r> c1 c2 ...  dump while hopping from channel to channel (up to 8 channels, 20 ms each)
+//   r <sec>      energy: sweeps the channels for <sec> seconds and counts, per channel, how often the nRF24
+//                detects a strong signal (> -64 dBm, RPD register), whatever the protocol
+//   a <v>        listening address: 0 = XN297 preamble (default); 1..4 = nRF24 "promiscuous" trick
+//                (2-byte address 00AA / AA00 / 0055 / 5500: catches the preamble of any nRF24-compatible chip,
+//                with a lot of noise; real frames stand out because they repeat)
+//                5 = exact address of the grey JM039TX remote (88 B4 87 2E CB): less noise
 //   x            stop
 
 #include <SPI.h>
 
 constexpr int PIN_CE = 4, PIN_CSN = 5, PIN_SCK = 18, PIN_MISO = 19, PIN_MOSI = 23;
 constexpr uint8_t PAYLOAD = 32;
-constexpr uint8_t DEDUP = 12;  // les octets au-dela de la vraie trame sont du bruit : on compare le debut
+constexpr uint8_t DEDUP = 12;  // bytes past the real frame are noise: compare the start only
 
 namespace nrf {
 enum : uint8_t { CONFIG = 0x00, EN_AA = 0x01, EN_RXADDR = 0x02, SETUP_AW = 0x03, SETUP_RETR = 0x04,
@@ -46,7 +46,7 @@ void writeReg(uint8_t r, uint8_t v) { transfer(0x20 | r, &v, nullptr, 1); }
 void writeRegs(uint8_t r, const uint8_t* d, uint8_t n) { transfer(0x20 | r, d, nullptr, n); }
 uint8_t readReg(uint8_t r) { uint8_t v; transfer(r, nullptr, &v, 1); return v; }
 
-// 0 = 250 kbit/s, 1 = 1 Mbit/s, 2 = 2 Mbit/s (LNA active)
+// 0 = 250 kbit/s, 1 = 1 Mbit/s, 2 = 2 Mbit/s (LNA on)
 void setRate(uint8_t r) { writeReg(RF_SETUP, r == 2 ? 0x0F : (r == 0 ? 0x27 : 0x07)); }
 void setChannel(uint8_t ch) {
   digitalWrite(PIN_CE, LOW);
@@ -54,7 +54,7 @@ void setChannel(uint8_t ch) {
   cmd(0xE2);               // FLUSH_RX
   writeReg(STATUS, 0x70);
   digitalWrite(PIN_CE, HIGH);
-  delayMicroseconds(150);  // temps de stabilisation du synthetiseur
+  delayMicroseconds(150);  // synthesizer settling time
 }
 
 bool begin() {
@@ -62,17 +62,17 @@ bool begin() {
   digitalWrite(PIN_CE, LOW); digitalWrite(PIN_CSN, HIGH);
   SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_CSN);
   delay(5);
-  writeReg(SETUP_AW, 0x01);  // adresse de 3 octets
+  writeReg(SETUP_AW, 0x01);  // 3-byte address
   if (readReg(SETUP_AW) != 0x01) return false;
   writeReg(EN_AA, 0x00);
   writeReg(EN_RXADDR, 0x01);
   writeReg(SETUP_RETR, 0x00);
   writeReg(DYNPD, 0x00);
   writeReg(FEATURE, 0x00);
-  static const uint8_t xn297Preamble[3] = {0x55, 0x0F, 0x71};  // 71 0F 55 sur les ondes
+  static const uint8_t xn297Preamble[3] = {0x55, 0x0F, 0x71};  // 71 0F 55 on air
   writeRegs(RX_ADDR_P0, xn297Preamble, 3);
   writeReg(RX_PW_P0, PAYLOAD);
-  writeReg(CONFIG, 0x03);  // PWR_UP | PRIM_RX, CRC desactive
+  writeReg(CONFIG, 0x03);  // PWR_UP | PRIM_RX, CRC disabled
   delay(5);
   return true;
 }
@@ -80,16 +80,16 @@ bool begin() {
 void setAddress(uint8_t v) {
   static const uint8_t xn297Preamble[3] = {0x55, 0x0F, 0x71};
   static const uint8_t promisc[4][2] = {{0x00, 0xAA}, {0xAA, 0x00}, {0x00, 0x55}, {0x55, 0x00}};
-  // 5 : adresse de la telecommande grise JM039TX (88 B4 87 2E CB sur les ondes, ecrite a l'envers)
+  // 5: address of the grey JM039TX remote (88 B4 87 2E CB on air, written reversed)
   static const uint8_t jm039[5] = {0xCB, 0x2E, 0x87, 0xB4, 0x88};
   digitalWrite(PIN_CE, LOW);
   if (v == 5) { writeReg(SETUP_AW, 0x03); writeRegs(RX_ADDR_P0, jm039, 5); }
   else if (v == 0 || v > 4) { writeReg(SETUP_AW, 0x01); writeRegs(RX_ADDR_P0, xn297Preamble, 3); }
-  else { writeReg(SETUP_AW, 0x00); writeRegs(RX_ADDR_P0, promisc[v - 1], 2); }  // AW=0 : 2 octets (non documente)
+  else { writeReg(SETUP_AW, 0x00); writeRegs(RX_ADDR_P0, promisc[v - 1], 2); }  // AW=0: 2 bytes (undocumented)
   digitalWrite(PIN_CE, HIGH);
 }
 
-// true si un paquet a ete lu
+// true if a packet was read
 bool read(uint8_t* buf) {
   if (readReg(FIFO_STATUS) & 0x01) return false;  // RX_EMPTY
   transfer(0x61, nullptr, buf, PAYLOAD);           // R_RX_PAYLOAD
@@ -118,7 +118,7 @@ void printPacket(uint8_t ch, const uint8_t* b) {
 }
 
 void scan() {
-  Serial.println("SCAN debut");
+  Serial.println("SCAN start");
   const uint8_t rates[3] = {1, 2, 0};
   uint8_t buf[PAYLOAD];
   for (uint8_t r : rates) {
@@ -131,10 +131,10 @@ void scan() {
       if (n) Serial.printf("S %s %3u %u\n", rateName(r), ch, n);
     }
   }
-  Serial.println("SCAN fin");
+  Serial.println("SCAN end");
 }
 
-// Balayages repetes a 1 Mbit/s (20 ms par canal) pendant <seconds> s, totaux par canal a la fin.
+// Repeated 1 Mbit/s sweeps (20 ms per channel) for <seconds> s, totals per channel at the end.
 void scanTotals(uint32_t seconds) {
   static uint16_t hits[126];
   memset(hits, 0, sizeof hits);
@@ -149,10 +149,10 @@ void scanTotals(uint32_t seconds) {
     }
     sweeps++;
   }
-  Serial.printf("TOTAUX %lu balayages\n", (unsigned long)sweeps);
+  Serial.printf("TOTALS %lu sweeps\n", (unsigned long)sweeps);
   for (uint8_t ch = 0; ch < 126; ch++)
     if (hits[ch]) Serial.printf("T %3u %u\n", ch, hits[ch]);
-  Serial.println("TOTAUX fin");
+  Serial.println("TOTALS end");
 }
 
 void energy(uint32_t seconds) {
@@ -167,10 +167,10 @@ void energy(uint32_t seconds) {
     }
     sweeps++;
   }
-  Serial.printf("ENERGIE %lu balayages\n", (unsigned long)sweeps);
+  Serial.printf("ENERGY %lu sweeps\n", (unsigned long)sweeps);
   for (uint8_t ch = 0; ch < 126; ch++)
     if (hits[ch]) Serial.printf("E %3u %u\n", ch, hits[ch]);
-  Serial.println("ENERGIE fin");
+  Serial.println("ENERGY end");
 }
 
 void handleLine(char* line) {
@@ -180,7 +180,7 @@ void handleLine(char* line) {
   repeats = 0;
   memset(last, 0, sizeof last);
   switch (tok[0]) {
-    case 'a': { uint8_t v = atoi(strtok(nullptr, " ")); nrf::setAddress(v); Serial.printf("ADRESSE %u\n", v); break; }
+    case 'a': { uint8_t v = atoi(strtok(nullptr, " ")); nrf::setAddress(v); Serial.printf("ADDRESS %u\n", v); break; }
     case 's': scan(); break;
     case 't': scanTotals(atoi(strtok(nullptr, " "))); break;
     case 'r': nrf::setRate(1); energy(atoi(strtok(nullptr, " "))); break;
@@ -191,7 +191,7 @@ void handleLine(char* line) {
       nrf::setChannel(ch);
       hopList[0] = ch; hopCount = 1; hopIdx = 0;
       mode = Mode::Dump;
-      Serial.printf("DUMP %s canal %u\n", rateName(rate), ch);
+      Serial.printf("DUMP %s channel %u\n", rateName(rate), ch);
       break;
     }
     case 'h': {
@@ -203,7 +203,7 @@ void handleLine(char* line) {
       hopIdx = 0; hopT = millis();
       nrf::setChannel(hopList[0]);
       mode = Mode::Hop;
-      Serial.printf("HOP %s sur %u canaux\n", rateName(rate), hopCount);
+      Serial.printf("HOP %s on %u channels\n", rateName(rate), hopCount);
       break;
     }
     default: Serial.println("STOP"); break;
@@ -214,10 +214,10 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   if (!nrf::begin()) {
-    Serial.println("nRF24L01 non detecte : verifie le cablage et l'alimentation");
+    Serial.println("nRF24L01 not found: check the wiring and the power supply");
     while (true) delay(1000);
   }
-  Serial.println("Renifleur pret. Commandes : s | d <r> <ch> | h <r> <ch...> | x");
+  Serial.println("Sniffer ready. Commands: s | t <sec> | d <r> <ch> | h <r> <ch...> | r <sec> | a 0-5 | x");
 }
 
 void loop() {

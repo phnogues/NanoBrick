@@ -7,7 +7,7 @@ useful for genuine **Mould King** boxes driven by a Mould King 2.4 GHz remote.
 ## Source
 - Ported from **DIY-Multiprotocol-TX-Module** (GPLv3): https://github.com/pascallanger/DIY-Multiprotocol-TX-Module
   (`MouldKg_nrf24l01.ino` for the protocol, `XN297_EMU.ino` for the XN297 emulated on the nRF24).
-- The XN297 coding is **already in this repository** (`tools/JM039TX/xn297.h`, `src/NanoBrick/Boitier.cs`):
+- The XN297 coding is **already in this repository** (`tools/JM039TX/xn297.h`, `src/NanoBrick/Protocols/BatteryBoxProtocol.cs`):
   only the part below is missing.
 
 ## What the port did
@@ -30,5 +30,5 @@ useful for genuine **Mould King** boxes driven by a Mould King 2.4 GHz remote.
 
 ## To integrate
 1. Binding: send on 11, listen for the answer on 76 (needs nRF24 RX mode and `xn297::decode`, already written).
-2. Frequency hopping and both frame formats (`MouldKing.cs` next to `Boitier.cs`).
+2. Frequency hopping and both frame formats (`MouldKingProtocol.cs` next to `BatteryBoxProtocol.cs`).
 3. Check with the sniffer against a real Mould King remote before trusting the port.

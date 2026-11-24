@@ -50,11 +50,30 @@ teach kids coding with the bricks they already have.
 - nRF24L01+ PA+LNA module on its 5 V adapter board
 - Wiring: see [docs/wiring.md](docs/wiring.md). A 3D-printable case is planned in [`hardware/`](hardware).
 
+## Firmware architecture
+
+```
+src/NanoBrick/
+├─ Program.cs                  Bluetooth LE (Nordic UART) wiring, line splitting
+├─ CommandInterpreter.cs       text command → transmitter calls
+├─ Protocols/                  pure frame encoders, unit-tested on the PC
+│  ├─ Jm039Protocol.cs         grey remote (nRF24, custom CRC)
+│  └─ BatteryBoxProtocol.cs    white remote (XN297 whitening + CRC)
+├─ Transmission/
+│  ├─ Transmitter.cs           8 ms transmission loop on its own thread, frame cache
+│  ├─ ReceiverLink.cs          when to talk / stay silent for one receiver (lock-in, keep-alive)
+│  └─ MotorQueue.cs            allocation-free job queue per motor
+└─ Hardware/Nrf24Radio.cs      minimal transmit-only nRF24L01+ driver
+```
+
+The protocol and scheduling classes have no hardware dependency: the test project compiles the very same
+source files for .NET 10 and checks them against frames captured from the real remotes.
+
 ## Repository layout
 
 ```
 docs/       protocols, wiring, notes
-src/        C#: NanoBrick (ESP32 firmware, nanoFramework), NanoBrick.Tests (PC tests with real frames),
+src/        C#: NanoBrick (ESP32 firmware, nanoFramework), NanoBrick.Tests (xUnit tests with real frames),
             Remote (Windows WPF remote control, Bluetooth or USB)
 tools/      Sniffer (Arduino nRF24 sniffer used to decode the remotes)
             JM039TX (Arduino transmitter + Web Serial page: alternative to the C# firmware, not maintained)
@@ -71,7 +90,7 @@ Replace `COM5` with the serial port of your ESP32.
    `nanoff --nanodevice --serialport COM5 --deploy --image src\NanoBrick\bin\Release\NanoBrick.bin`
    then press the **EN** button.
 3. Run `src/Remote` (`dotnet run --project src/Remote`), choose **Bluetooth « NanoBrick »**, connect.
-4. PC tests of the protocols: `dotnet run --project src/NanoBrick.Tests`
+4. PC tests (protocols checked against real captured frames, scheduling): `dotnet test src/NanoBrick.Tests`
 
 ## Commands (one text line each, over Bluetooth)
 
@@ -92,7 +111,6 @@ Replace `COM5` with the serial port of your ESP32.
 - The C# firmware gets overloaded when the 4 receivers are kept locked at the same time
   (some Bluetooth commands get lost): declare only the receivers you have (`m`).
 - Bluetooth reconnections can be slow; pressing **EN** on the ESP32 helps.
-- The code, comments and the Remote app are in French for now (the project started as a family project).
 
 ## License
 

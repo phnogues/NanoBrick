@@ -2,7 +2,7 @@
 
 Same wiring as the C# firmware ([docs/wiring.md](../docs/wiring.md)). Build and flash with the Arduino IDE
 or `arduino-cli compile --fqbn esp32:esp32:esp32 -u -p COM5 <folder>` (ESP32 core 3.x).
-Serial monitor at 115200 baud. Comments and messages are in French.
+Serial monitor at 115200 baud.
 
 ## `Sniffer/` — decode a 2.4 GHz remote
 The tool used to reverse-engineer both remotes. Commands:

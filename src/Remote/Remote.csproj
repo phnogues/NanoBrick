@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Petite IHM Windows pour envoyer les ordres à l'émetteur (version Arduino par câble USB,
-       ou version C# nanoFramework en Bluetooth). -->
+  <!-- Small Windows UI to send commands to the transmitter (Arduino version over USB,
+       or C# nanoFramework version over Bluetooth). -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Remote</RootNamespace>
-    <AssemblyTitle>Télécommande LEGO</AssemblyTitle>
+    <AssemblyTitle>nanoBrick remote</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

@@ -23,11 +23,14 @@
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" Condition="Exists('$(NanoFrameworkProjectSystemPath)NFProjectSystem.props')" />
 
   <ItemGroup>
-    <Compile Include="Boitier.cs" />
-    <Compile Include="Emetteur.cs" />
-    <Compile Include="Jm039.cs" />
-    <Compile Include="Nrf24.cs" />
+    <Compile Include="CommandInterpreter.cs" />
+    <Compile Include="Hardware\Nrf24Radio.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Protocols\BatteryBoxProtocol.cs" />
+    <Compile Include="Protocols\Jm039Protocol.cs" />
+    <Compile Include="Transmission\MotorQueue.cs" />
+    <Compile Include="Transmission\ReceiverLink.cs" />
+    <Compile Include="Transmission\Transmitter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
 

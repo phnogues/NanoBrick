@@ -2,7 +2,7 @@
 
 USB-C battery box with an orange button and a built-in receiver, sold with a white remote
 (PCB `AW2101048`, 8 arrow buttons + 2 square buttons). Decoded with [`tools/Sniffer`](../tools/Sniffer).
-Implemented in [`src/NanoBrick/Boitier.cs`](../src/NanoBrick/Boitier.cs) and checked against 10 real frames
+Implemented in [`BatteryBoxProtocol.cs`](../src/NanoBrick/Protocols/BatteryBoxProtocol.cs) and checked against 10 real frames
 in [`src/NanoBrick.Tests`](../src/NanoBrick.Tests).
 
 ## Pairing
@@ -17,7 +17,7 @@ Blue LEDs turn steady on both sides. **There is no ID in the frame**: the ESP32 
 - One frame every ~8 ms **while a button is held**, about 20 "nothing pressed" frames after release,
   then silence.
 - XN297 coding: whitening LFSR (x⁷ + x³ + 1, seed `0x71`), CRC16-CCITT init `FFFF` over the clear address
-  and data, data bytes bit-reversed — see `Boitier.Construire`.
+  and data, data bytes bit-reversed — see `BatteryBoxProtocol.Encode`.
 
 ## Payload (10 bytes)
 

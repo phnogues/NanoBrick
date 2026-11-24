@@ -1,7 +1,7 @@
 # Grey remote `JM039TX` → receivers with a 1–4 selector
 
 Decoded with [`tools/Sniffer`](../tools/Sniffer). Implemented in
-[`src/NanoBrick/Jm039.cs`](../src/NanoBrick/Jm039.cs) and checked against 17 real frames in
+[`Jm039Protocol.cs`](../src/NanoBrick/Protocols/Jm039Protocol.cs) and checked against 17 real frames in
 [`src/NanoBrick.Tests`](../src/NanoBrick.Tests).
 
 ## Radio
