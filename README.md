@@ -27,13 +27,21 @@ documented in [`docs/`](docs).
 
 These parts are sold under many names on AliExpress, Amazon, Temu… as "building blocks motor",
 "technic motor", "power functions compatible", "remote control train" or "2.4G receiver" kits.
-Look at your remote:
+Each remote goes with its own receiver. Find yours (drawings, not photos):
 
-- **Grey remote with two wheels** (thumb wheels with notches, two orange stop buttons), PCB marked
-  **`JM039TX`**, receiver with a **1–4 channel selector** and two outputs → [protocol](docs/protocol-jm039.md)
-- **White remote with 8 arrow buttons** (A▲▼ B◀▶ on the left, C▲▼ D◀▶ on the right) and two square
-  buttons, PCB marked **`AW2101048`**, grey USB-C **battery box with 4 outputs A–D** and an orange button
-  → [protocol](docs/protocol-battery-box.md)
+| Grey remote → selector receiver | White remote → 4-output battery box |
+|:---:|:---:|
+| <img src="docs/images/grey-remote.svg" alt="Grey remote with two orange thumb wheels" width="260"> <img src="docs/images/receiver.svg" alt="Receiver with a 1-4 selector" width="150"> | <img src="docs/images/white-remote.svg" alt="White remote with two orange arrow pads" width="270"> <img src="docs/images/battery-box.svg" alt="Battery box with outputs A to D" width="110"> |
+| Two orange **thumb wheels** with notches, two orange **stop** buttons, a **1–4 selector**. PCB marked **`JM039TX`**. | Two orange **arrow pads** (A▲▼ B◀▶ on the left, C▲▼ D◀▶ on the right), two square buttons. PCB marked **`AW2101048`**. |
+| Receiver block with the **same 1–4 selector on its front** and two outputs (A, B). Up to 4 receivers, one per selector position. | Grey USB-C **battery box** with an orange button and **4 outputs A–D**; the receiver is built in. Pairs with the first remote it hears. |
+| Speed by steps, kept by the receiver. → [protocol](docs/protocol-jm039.md) | On / off, both directions, full speed. → [protocol](docs/protocol-battery-box.md) |
+
+Other grey thumb-wheel clones very likely use the same protocol (same look, same receiver); tell us if
+yours works.
+
+> **Not compatible:** the original LEGO® Power Functions remotes and receivers (8879, 8885, 8884) look
+> similar but use **infrared**, not 2.4 GHz radio. nanoBrick only speaks the radio protocols of the clones.
+
 - Something else? The [sniffer](tools/Sniffer) finds the channels and dumps the frames of most 2.4 GHz
   toy remotes (nRF24L01 and XN297-based chips, "promiscuous" mode included). Contributions welcome!
 - Genuine **Mould King** boxes are not supported yet; see [the notes](docs/mouldking-notes.md).

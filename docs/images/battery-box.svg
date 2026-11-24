@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" width="200" height="300" role="img" aria-labelledby="t">
+  <title id="t">Grey USB-C battery box with 4 outputs (A, B, C, D), an orange button and a built-in 2.4 GHz receiver</title>
+  <defs>
+    <g id="port">
+      <rect x="-26" y="-16" width="52" height="32" rx="6" fill="#c3c7cc" stroke="#8f959b" stroke-width="2"/>
+      <rect x="-18" y="-9" width="36" height="18" rx="3" fill="#a9aeb4"/>
+      <g fill="#d9b24a"><rect x="-10" y="-6" width="4" height="5"/><rect x="6" y="-6" width="4" height="5"/><rect x="-10" y="2" width="4" height="5"/><rect x="6" y="2" width="4" height="5"/></g>
+    </g>
+    <circle id="stud" r="13" fill="#dadde0" stroke="#a9aeb3" stroke-width="2"/>
+  </defs>
+  <rect x="10" y="10" width="180" height="280" rx="12" fill="#cdd1d5" stroke="#9fa4aa" stroke-width="2"/>
+  <use href="#port" x="58" y="56"/><use href="#port" x="142" y="56"/>
+  <use href="#port" x="58" y="244"/><use href="#port" x="142" y="244"/>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#6b7178" text-anchor="middle">
+    <text x="58" y="30">A</text><text x="142" y="30">C</text><text x="58" y="284">B</text><text x="142" y="284">D</text>
+  </g>
+  <use href="#stud" x="38" y="102"/><use href="#stud" x="78" y="102"/><use href="#stud" x="122" y="102"/><use href="#stud" x="162" y="102"/>
+  <use href="#stud" x="38" y="198"/><use href="#stud" x="78" y="198"/><use href="#stud" x="122" y="198"/><use href="#stud" x="162" y="198"/>
+  <use href="#stud" x="38" y="134"/><use href="#stud" x="162" y="134"/><use href="#stud" x="38" y="166"/><use href="#stud" x="162" y="166"/>
+  <!-- USB-C and orange button -->
+  <rect x="80" y="126" width="40" height="14" rx="7" fill="#3a3d41" stroke="#8f959b" stroke-width="2"/>
+  <circle cx="100" cy="170" r="13" fill="#f47a3c" stroke="#d2541a" stroke-width="2"/>
+  <rect x="68" y="160" width="5" height="18" fill="#23262a"/><rect x="127" y="160" width="5" height="18" fill="#23262a"/>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 230" width="320" height="230" role="img" aria-labelledby="t">
+  <title id="t">Grey 2.4 GHz remote (PCB JM039TX): two orange thumb wheels, two orange stop buttons, 1-4 selector</title>
+  <defs>
+    <radialGradient id="wheel" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffab7d"/>
+      <stop offset="1" stop-color="#f26d2c"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e3e5e8"/>
+      <stop offset="1" stop-color="#c3c7cc"/>
+    </linearGradient>
+  </defs>
+  <!-- Technic side rails -->
+  <rect x="62" y="4" width="196" height="22" rx="6" fill="#9ea3a9"/>
+  <rect x="62" y="204" width="196" height="22" rx="6" fill="#9ea3a9"/>
+  <!-- Body -->
+  <path d="M30 40 Q30 20 52 20 H268 Q290 20 290 40 V190 Q290 210 268 210 H52 Q30 210 30 190 Z" fill="url(#body)" stroke="#a7acb2" stroke-width="2"/>
+  <path d="M48 36 H272 V194 H48 Z" fill="none" stroke="#b5b9be" stroke-width="2" rx="14"/>
+  <!-- Wheels -->
+  <g>
+    <circle cx="100" cy="100" r="44" fill="url(#wheel)" stroke="#d2541a" stroke-width="2"/>
+    <g stroke="#e05f22" stroke-width="3" stroke-linecap="round">
+      <line x1="100" y1="60" x2="100" y2="72"/><line x1="100" y1="128" x2="100" y2="140"/>
+      <line x1="60" y1="100" x2="72" y2="100"/><line x1="128" y1="100" x2="140" y2="100"/>
+      <line x1="72" y1="72" x2="80" y2="80"/><line x1="120" y1="120" x2="128" y2="128"/>
+      <line x1="128" y1="72" x2="120" y2="80"/><line x1="72" y1="128" x2="80" y2="120"/>
+    </g>
+    <circle cx="100" cy="100" r="13" fill="#c9ccd0" stroke="#9aa0a6" stroke-width="2"/>
+    <circle cx="96" cy="96" r="4" fill="#eef0f2"/>
+  </g>
+  <g>
+    <circle cx="220" cy="100" r="44" fill="url(#wheel)" stroke="#d2541a" stroke-width="2"/>
+    <g stroke="#e05f22" stroke-width="3" stroke-linecap="round">
+      <line x1="220" y1="60" x2="220" y2="72"/><line x1="220" y1="128" x2="220" y2="140"/>
+      <line x1="180" y1="100" x2="192" y2="100"/><line x1="248" y1="100" x2="260" y2="100"/>
+      <line x1="192" y1="72" x2="200" y2="80"/><line x1="240" y1="120" x2="248" y2="128"/>
+      <line x1="248" y1="72" x2="240" y2="80"/><line x1="192" y1="128" x2="200" y2="120"/>
+    </g>
+    <circle cx="220" cy="100" r="13" fill="#c9ccd0" stroke="#9aa0a6" stroke-width="2"/>
+    <circle cx="216" cy="96" r="4" fill="#eef0f2"/>
+  </g>
+  <!-- Notch scales -->
+  <g fill="#9aa0a6"><path d="M100 46 l-5 -8 h10 z"/><path d="M220 46 l-5 -8 h10 z"/><path d="M100 154 l-5 8 h10 z"/><path d="M220 154 l-5 8 h10 z"/></g>
+  <!-- Stop buttons -->
+  <rect x="80" y="166" width="40" height="28" rx="6" fill="#f47a3c" stroke="#d2541a" stroke-width="2"/>
+  <rect x="200" y="166" width="40" height="28" rx="6" fill="#f47a3c" stroke="#d2541a" stroke-width="2"/>
+  <!-- Selector 1-4 -->
+  <rect x="134" y="146" width="52" height="22" rx="6" fill="#d7dadd" stroke="#a7acb2" stroke-width="1.5"/>
+  <rect x="140" y="150" width="40" height="14" rx="4" fill="#f9a374"/>
+  <rect x="150" y="147" width="14" height="20" rx="4" fill="#f26d2c"/>
+  <text x="160" y="182" font-family="Segoe UI, Arial, sans-serif" font-size="11" text-anchor="middle" fill="#555b62">1 2 3 4</text>
+  <!-- Front window -->
+  <path d="M138 20 H182 Q190 20 190 28 V40 H130 V28 Q130 20 138 20 Z" fill="#26292d"/>
+  <rect x="150" y="24" width="20" height="12" rx="2" fill="#3c4046"/>
+</svg>
