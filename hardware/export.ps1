@@ -23,7 +23,7 @@ foreach ($p in $parts) {
 }
 
 $images = @(
-    @{ png = "assembly.png"; option = 'part=\"assembly\"'; camera = "36,32,10,55,0,320,260" },
+    @{ png = "assembly.png"; option = 'part=\"assembly\"'; camera = "36,32,58,62,0,320,470"; size = "1000,1000" },
     @{ png = "case.png";     option = 'part=\"case\"';     camera = "36,32,10,50,0,140,240" },
     @{ png = "lid.png";      option = 'part=\"lid\"';      camera = "36,32,0,45,0,30,220" },
     @{ png = "cradle.png";   option = 'part=\"cradle\"';   camera = "30,14,5,50,0,320,130" }
@@ -31,7 +31,7 @@ $images = @(
 
 foreach ($i in $images) {
     Write-Host "Rendering $($i.png)..."
-    & $openscad -o "images\$($i.png)" -D $i.option --imgsize=1000,750 "--camera=$($i.camera)" `
+    & $openscad -o "images\$($i.png)" -D $i.option "--imgsize=$(if ($i.size) { $i.size } else { '1000,750' })" "--camera=$($i.camera)" `
         --colorscheme=Tomorrow transmitter_case.scad
 }
 Write-Host "Done: STL files are in the stl folder, previews in the images folder."

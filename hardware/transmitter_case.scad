@@ -99,7 +99,7 @@ sma_z     = cradle_lift + module_dz + sma_from_edge;
 posts     = [[in_l - 12, 40], [in_l - 4, 40]];   // pigtail posts (x, y)
 nail_y    = [6, 18];                            // fingernail notch on end 2
 
-// Lid tabs: [side, from, to] ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â side "y0" (nRF wall), "y1" (ESP wall), "x1" (end 2)
+// Lid tabs: [side, from, to] - side "y0" (nRF wall), "y1" (ESP wall), "x1" (end 2)
 tabs = [["y0", 6, 20], ["y1", 8, 22], ["y1", 40, 54], ["x1", 24, 36]];
 
 assert(esp_x0 >= 0, "USB socket sticks out more than the wall: check usb_out");
@@ -108,7 +108,7 @@ assert(sma_y + 5 < esp_y0, "nRF stack and ESP32 overlap: increase ny");
 assert(wifi_z - wifi_nut / 2 - 1 > 11.5, "Wi-Fi nut hits the pigtail posts: raise wifi_z");
 assert(wifi_z + wifi_nut / 2 + 1 < inner_h - tab_h, "Wi-Fi nut hits the lid tab: lower wifi_z");
 
-// inside coordinates ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ case coordinates
+// inside coordinates -> case coordinates
 module inside() { translate([wall, wall, floor_t]) children(); }
 
 // ---------------------------------------------------------------- case
@@ -284,6 +284,24 @@ module boards() {
         color("Gold") translate([elbow_x, sma_y - 3, sma_z - 3]) cube([4, 6, 6]);
         // Wi-Fi bulkhead
         color("Gold") translate([in_l - 8, usb_y, wifi_z]) rotate([0, 90, 0]) cylinder(d = 6, h = 16);
+        // both antennas, screwed on and folded upright
+        translate([elbow_x - 6, sma_y, sma_z]) mirror([1, 0, 0]) antenna();
+        translate([in_l + wall + 2, usb_y, wifi_z]) antenna();
+    }
+}
+
+// A typical 2.4 GHz hinged antenna, seen from its SMA end (pointing +x, then folded up)
+antenna_l = 108;
+module antenna() {
+    color([0.22, 0.22, 0.24]) {
+        rotate([0, 90, 0]) cylinder(d = 8.5, h = 10);                 // knurled SMA nut and sleeve
+        translate([14, 0, 0]) rotate([90, 0, 0]) cylinder(d = 9, h = 9, center = true);   // hinge
+        translate([10, -4.5, -4.5]) cube([4, 9, 9]);
+        translate([14, 0, 0]) {
+            cylinder(d1 = 9, d2 = 10, h = 12);
+            translate([0, 0, 12]) cylinder(d1 = 10, d2 = 8, h = antenna_l - 16);
+            translate([0, 0, antenna_l - 4]) sphere(d = 8);
+        }
     }
 }
 
