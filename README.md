@@ -65,8 +65,15 @@ teach kids coding with the bricks they already have.
 | **Adapter** | VCC | GND | CE | CSN | SCK | MO (MOSI) | MI (MISO) | IRQ (not connected) |
 
 The adapter board has its own 3.3 V regulator, so it is powered from the ESP32's **5V** pin. Screw the
-2.4 GHz antenna on before powering up. Details in [docs/wiring.md](docs/wiring.md); a 3D-printable case is
-planned in [`hardware/`](hardware).
+2.4 GHz antenna on before powering up. Details in [docs/wiring.md](docs/wiring.md).
+
+### 3D-printed case
+
+<img src="hardware/images/assembly.png" alt="Case preview: Technic floor and side holes, ESP32 on pillars, nRF24 standing in its cradle, SMA elbow and Wi-Fi connector at the ends, clip-on lid" width="500">
+
+A PETG case that sits on LEGO Technic parts (9 × 8 hole floor, a row of holes on each long side), with
+both antennas at the ends and a clip-on lid. Parametric OpenSCAD files and ready-to-print STL files, tested
+on a Creality K2: see [hardware/](hardware).
 
 ## Firmware architecture
 
@@ -95,7 +102,7 @@ src/        C#: NanoBrick (ESP32 firmware, nanoFramework), NanoBrick.Tests (xUni
             Remote (Windows WPF remote control, Bluetooth or USB)
 tools/      Sniffer (Arduino nRF24 sniffer used to decode the remotes)
             JM039TX (Arduino transmitter + Web Serial page: alternative to the C# firmware, not maintained)
-hardware/   3D-printed case (to come)
+hardware/   3D-printed case (OpenSCAD sources, STL files)
 ```
 
 ## Quick start (C#)
