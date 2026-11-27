@@ -23,7 +23,7 @@ foreach ($p in $parts) {
 }
 
 $images = @(
-    @{ png = "assembly.png"; option = 'part=\"assembly\"'; camera = "36,32,58,62,0,320,470"; size = "1000,1000" },
+    @{ png = "transmitter.png"; option = 'part=\"assembly\"'; camera = "36,32,58,62,0,320,470"; size = "1000,1000" },
     @{ png = "case.png";     option = 'part=\"case\"';     camera = "36,32,10,50,0,140,240" },
     @{ png = "lid.png";      option = 'part=\"lid\"';      camera = "36,32,0,45,0,30,220" },
     @{ png = "cradle.png";   option = 'part=\"cradle\"';   camera = "30,14,5,50,0,320,130" }
