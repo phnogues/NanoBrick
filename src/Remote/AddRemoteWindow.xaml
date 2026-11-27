@@ -1,0 +1,121 @@
+<Window x:Class="Remote.AddRemoteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Remote"
+        Title="Add a remote" Width="560" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True"
+        Background="White" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14" Foreground="{StaticResource InkBrush}">
+    <Window.Resources>
+        <!-- A protocol choice drawn as a big selectable tile -->
+        <Style x:Key="TileRadio" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Frame" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="2"
+                                CornerRadius="16" Padding="14">
+                            <Grid>
+                                <ContentPresenter />
+                                <Border x:Name="Check" Width="22" Height="22" CornerRadius="11" Background="{StaticResource OrangeBrush}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed" Margin="0,-4,-4,0">
+                                    <TextBlock Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="#F7B48F" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource OrangeBrush}" />
+                                <Setter TargetName="Frame" Property="Background" Value="{StaticResource OrangeTintBrush}" />
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Selector position 1–4: round buttons -->
+        <Style x:Key="PositionRadio" TargetType="RadioButton" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Background" Value="{StaticResource SoftBrush}" />
+            <Setter Property="local:Ui.CornerRadius" Value="22" />
+            <Setter Property="GroupName" Value="Position" />
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="{StaticResource OrangeBrush}" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="Effect" Value="{StaticResource SoftShadow}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="28,24,28,24">
+        <TextBlock Text="Add a remote" FontSize="24" FontWeight="Bold" />
+        <TextBlock Text="Which remote came with your model?" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,18" />
+
+        <UniformGrid Columns="2">
+            <RadioButton x:Name="GreyOption" Style="{StaticResource TileRadio}" GroupName="Kind" IsChecked="True"
+                         Checked="OnKindChanged" Margin="0,0,8,0">
+                <StackPanel>
+                    <ContentControl Content="{StaticResource GreyRemoteIcon}" Width="72" Height="60" HorizontalAlignment="Left" />
+                    <TextBlock Text="Grey remote" FontWeight="Bold" FontSize="16" Margin="0,10,0,2" />
+                    <TextBlock Text="2 wheels · receiver with a 1–4 selector, motors A and B, speed by steps"
+                               Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="BatteryBoxOption" Style="{StaticResource TileRadio}" GroupName="Kind"
+                         Checked="OnKindChanged" Margin="8,0,0,0">
+                <StackPanel>
+                    <ContentControl Content="{StaticResource BatteryBoxIcon}" Width="72" Height="60" HorizontalAlignment="Left" />
+                    <TextBlock Text="White remote" FontWeight="Bold" FontSize="16" Margin="0,10,0,2" />
+                    <TextBlock Text="Arrow buttons · battery box with 4 outputs A–D, on / off at full speed"
+                               Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </RadioButton>
+        </UniformGrid>
+
+        <StackPanel x:Name="PositionRow" Margin="0,20,0,0">
+            <TextBlock Text="SELECTOR ON THE RECEIVER" Style="{StaticResource Caption}" Margin="0,0,0,8" />
+            <StackPanel x:Name="PositionPanel" Orientation="Horizontal">
+                <RadioButton Style="{StaticResource PositionRadio}" Content="1" Tag="1" Checked="OnPositionChanged" />
+                <RadioButton Style="{StaticResource PositionRadio}" Content="2" Tag="2" Checked="OnPositionChanged" />
+                <RadioButton Style="{StaticResource PositionRadio}" Content="3" Tag="3" Checked="OnPositionChanged" />
+                <RadioButton Style="{StaticResource PositionRadio}" Content="4" Tag="4" Checked="OnPositionChanged" />
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="NAME" Style="{StaticResource Caption}" Margin="0,20,0,8" />
+        <TextBox x:Name="NameBox" Style="{StaticResource RoundTextBox}" FontSize="15" />
+
+        <Border x:Name="HintBox" Background="#FFF6E5" CornerRadius="10" Padding="12,8" Margin="0,16,0,0" Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" Foreground="#B7791F" VerticalAlignment="Top" Margin="0,2,10,0" />
+                <TextBlock x:Name="HintText" Foreground="#8A5A12" TextWrapping="Wrap" MaxWidth="440" FontSize="13" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button Content="Cancel" Style="{StaticResource GhostButton}" IsCancel="True" Padding="18,9" Margin="0,0,8,0" />
+            <Button x:Name="AddButton" AutomationProperties.Name="Add" Style="{StaticResource PillButton}" IsDefault="True" Click="OnAddClick">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="Add" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

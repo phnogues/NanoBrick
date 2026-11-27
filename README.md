@@ -119,6 +119,16 @@ Replace `COM5` with the serial port of your ESP32.
 3. Run `src/Remote` (`dotnet run --project src/Remote`), choose **Bluetooth « NanoBrick »**, connect.
 4. PC tests (protocols checked against real captured frames, scheduling): `dotnet test src/NanoBrick.Tests`
 
+## Windows remote app
+
+The app starts on a blank page: click **Add a remote**, pick the protocol (grey remote with the receiver's
+selector position, or white remote for the battery box), give it a name, and add as many as you have.
+Your remotes are saved for next time.
+
+<p align="center">
+  <img src="docs/images/remote-app.png" alt="The nanoBrick remote app: two grey-remote receivers with speed gauges and a battery box, plus an Add a remote tile" width="760">
+</p>
+
 ## Commands (one text line each, over Bluetooth)
 
 | Command | Meaning |
