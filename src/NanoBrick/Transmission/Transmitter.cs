@@ -20,7 +20,6 @@ namespace NanoBrick.Transmission
         private const int KeepAliveMs = 15000;     // extended by every command
         private const int MinimumSleepMs = 2;      // always yield, or the Bluetooth threads starve
         private const int MaxLateMs = 50;          // further behind (garbage collection…): restart the clock
-        private const int CommandValues = 64;      // Jm039Command combinations, for the frame cache
 
         private readonly Nrf24Radio _radio;
         private readonly object _lock = new object();
@@ -28,20 +27,35 @@ namespace NanoBrick.Transmission
         private readonly byte[] _frame = new byte[Jm039Protocol.FrameLength];
         private long _keepAliveUntil;
 
-        // Computing a frame (CRC included) is expensive in interpreted code: each
-        // (position, command, toggle) combination is encoded once, then kept (512 packets at most).
-        private readonly byte[][] _jm039Packets = new byte[Jm039Protocol.PositionCount * CommandValues * 2][];
+        // Computing a frame (CRC included) is expensive in interpreted code, but the managed heap of the
+        // ESP32 BLE firmware is tiny (~29 KB free at startup, and every Bluetooth connection needs a few KB).
+        // So the packet cache is small and allocated once: for each (position, toggle), the neutral packet
+        // and the last command packet, which is exactly what a notch alternates between.
+        private const int Jm039Slots = Jm039Protocol.PositionCount * 2 * 2;
+        private readonly byte[][] _jm039Packets = new byte[Jm039Slots][];
+        private readonly int[] _jm039SlotCommand = new int[Jm039Slots];   // command encoded in each slot, -1 = none
 
         // Battery box: button held and frames left per output (A to D), square buttons
         private readonly int[] _boxArrow = new int[BatteryBoxProtocol.OutputCount];
         private readonly int[] _boxFramesLeft = new int[BatteryBoxProtocol.OutputCount];
         private int _boxSquares, _boxSquareFramesLeft, _boxTrailingFrames;
-        private readonly byte[][] _boxPackets = new byte[256][];   // one per arrow combination
+        // Battery box packets, allocated once: "nothing pressed", the last arrow combination, and a scratch one
+        private readonly byte[] _boxIdlePacket = NewPacket(BatteryBoxProtocol.FrameLength);
+        private readonly byte[] _boxArrowsPacket = NewPacket(BatteryBoxProtocol.FrameLength);
+        private readonly byte[] _boxScratchPacket = NewPacket(BatteryBoxProtocol.FrameLength);
+        private readonly byte[] _boxFrame = new byte[BatteryBoxProtocol.FrameLength];
+        private int _boxArrowsCached = -1;
 
         public Transmitter(Nrf24Radio radio)
         {
             _radio = radio;
             for (int i = 0; i < _receivers.Length; i++) _receivers[i] = new ReceiverLink();
+            for (int i = 0; i < Jm039Slots; i++)
+            {
+                _jm039Packets[i] = NewPacket(Jm039Protocol.FrameLength);
+                _jm039SlotCommand[i] = -1;
+            }
+            EncodeBatteryBoxPacket(0, 0, _boxIdlePacket);
         }
 
         /// <summary>Positions kept alive and stopped by <see cref="StopAll"/> (bit 0 = position 1).</summary>
@@ -224,13 +238,13 @@ namespace NanoBrick.Transmission
 
         private byte[] GetJm039Packet(int index, Jm039Command command, bool toggle)
         {
-            int key = ((index * CommandValues) + ((int)command & (CommandValues - 1))) * 2 + (toggle ? 1 : 0);
-            byte[] packet = _jm039Packets[key];
-            if (packet == null)
+            int slot = ((index * 2) + (toggle ? 1 : 0)) * 2 + (command == Jm039Command.None ? 0 : 1);
+            byte[] packet = _jm039Packets[slot];
+            if (_jm039SlotCommand[slot] != (int)command)
             {
                 Jm039Protocol.Encode(command, index + 1, toggle, _frame);
-                packet = ToPacket(_frame);
-                _jm039Packets[key] = packet;
+                Array.Copy(_frame, 0, packet, 1, _frame.Length);
+                _jm039SlotCommand[slot] = (int)command;
             }
             return packet;
         }
@@ -259,30 +273,32 @@ namespace NanoBrick.Transmission
             else if (_boxTrailingFrames > 0) _boxTrailingFrames--;
             else return null;
 
-            if (squares != 0) return EncodeBatteryBoxPacket(arrows, squares);   // rare: not cached
-
-            byte[] packet = _boxPackets[arrows];
-            if (packet == null)
+            if (squares != 0)   // rare: not cached
             {
-                packet = EncodeBatteryBoxPacket(arrows, 0);
-                _boxPackets[arrows] = packet;
+                EncodeBatteryBoxPacket(arrows, squares, _boxScratchPacket);
+                return _boxScratchPacket;
             }
-            return packet;
+            if (arrows == 0) return _boxIdlePacket;
+
+            if (arrows != _boxArrowsCached)
+            {
+                EncodeBatteryBoxPacket(arrows, 0, _boxArrowsPacket);
+                _boxArrowsCached = arrows;
+            }
+            return _boxArrowsPacket;
         }
 
-        private static byte[] EncodeBatteryBoxPacket(int arrows, int squares)
+        private void EncodeBatteryBoxPacket(int arrows, int squares, byte[] packet)
         {
-            var frame = new byte[BatteryBoxProtocol.FrameLength];
-            BatteryBoxProtocol.Encode(arrows, squares, frame);
-            return ToPacket(frame);
+            BatteryBoxProtocol.Encode(arrows, squares, _boxFrame);
+            Array.Copy(_boxFrame, 0, packet, 1, _boxFrame.Length);
         }
 
-        // Prefixes a frame with the nRF24 W_TX_PAYLOAD command
-        private static byte[] ToPacket(byte[] frame)
+        // Packet buffer for a frame, prefixed with the nRF24 W_TX_PAYLOAD command
+        private static byte[] NewPacket(int frameLength)
         {
-            var packet = new byte[frame.Length + 1];
+            var packet = new byte[frameLength + 1];
             packet[0] = Nrf24Radio.TxPayloadCommand;
-            Array.Copy(frame, 0, packet, 1, frame.Length);
             return packet;
         }
 

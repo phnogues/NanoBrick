@@ -24,7 +24,8 @@
 //   hx [a-d]               stop one battery box output, or all of them
 //   The box pairs with the first remote it hears.
 //
-// Answers: "OK <command>", "FULL" when too many notches are queued, "? …" for an unknown command.
+// Answers: "OK <command>", "FULL" when too many notches are queued, "? …" for an unknown command,
+// "ERROR nRF24L01 not found …" to every command when the radio did not answer at startup (wiring).
 // Test it with the PC app ../Remote (Bluetooth mode), "nRF Connect" or "Serial Bluetooth Terminal".
 //
 // Wiring (nRF24 adapter powered with 5 V): CE -> 4, CSN -> 5, SCK -> 18, MISO -> 19, MOSI -> 23.
@@ -33,6 +34,8 @@ using System;
 using System.Device.Gpio;
 using System.Diagnostics;
 using System.Threading;
+using nanoFramework.Device.Bluetooth;
+using nanoFramework.Device.Bluetooth.GenericAttributeProfile;
 using nanoFramework.Device.Bluetooth.Spp;
 using nanoFramework.Hardware.Esp32;
 using NanoBrick.Hardware;
@@ -51,8 +54,14 @@ namespace NanoBrick
         private const string BluetoothName = "NanoBrick";
         private const int DefaultPowerLevel = 0;   // -18 dBm
         private const int MaxPendingChars = 64;
+        private const string RadioMissing = "ERROR nRF24L01 not found: check the wiring and the power supply";
+
+        private const int AdvertisingCheckMs = 250, AfterDisconnectionMs = 500, ReadvertiseMs = 10000;
 
         private static readonly object ReceiveLock = new object();
+        private static readonly object LinkLock = new object();
+        private static bool _linkUp, _linkDropped;
+        private static int _idleMs;
         private static NordicSpp _bluetooth;
         private static Transmitter _transmitter;
         private static CommandInterpreter _interpreter;
@@ -66,20 +75,24 @@ namespace NanoBrick
 
             GpioPin ce = new GpioController().OpenPin(CePin, PinMode.Output);
             var radio = new Nrf24Radio(SpiBus, CsnPin, ce);
-            if (!radio.Initialize(Jm039Protocol.AddressRegister, DefaultPowerLevel))
+            if (radio.Initialize(Jm039Protocol.AddressRegister, DefaultPowerLevel))
             {
-                Debug.WriteLine("nRF24L01 not found: check the wiring and the power supply");
-                Thread.Sleep(Timeout.Infinite);
+                _transmitter = new Transmitter(radio);
+                _transmitter.Start();
+                _interpreter = new CommandInterpreter(_transmitter, radio);
             }
-
-            _transmitter = new Transmitter(radio);
-            _transmitter.Start();
-            _interpreter = new CommandInterpreter(_transmitter, radio);
+            else
+            {
+                // Start Bluetooth anyway, so that the app can show what is wrong (see Reply)
+                Debug.WriteLine(RadioMissing);
+            }
 
             _bluetooth = new NordicSpp();
             _bluetooth.ReceivedData += OnDataReceived;
             _bluetooth.ConnectedEvent += OnConnectionChanged;
             _bluetooth.Start(BluetoothName);
+            BluetoothLEServer.Instance.Session.SessionStatusChanged += OnLinkChanged;
+            new Thread(KeepAdvertising).Start();
             Debug.WriteLine("NanoBrick ready, waiting for a Bluetooth connection...");
 
             Thread.Sleep(Timeout.Infinite);
@@ -90,13 +103,46 @@ namespace NanoBrick
             Debug.WriteLine(sender.IsConnected ? "Connected" : "Disconnected");
             if (sender.IsConnected) return;
 
-            _transmitter.SetKeepAlive(false);   // let the original remotes take over
+            if (_transmitter != null) _transmitter.SetKeepAlive(false);   // let the original remotes take over
+        }
 
-            // After a disconnection, advertising does not always restart by itself: restart it,
-            // from another thread (not from the Bluetooth stack's event).
-            new Thread(() =>
+        // Real Bluetooth link state (NordicSpp's "connected" only means "subscribed to TX notifications":
+        // it turns false when the client unsubscribes, while the link is still open).
+        private static void OnLinkChanged(object sender, GattSessionStatusChangedEventArgs e)
+        {
+            bool up = e.Status == GattSessionStatus.Active;
+            Debug.WriteLine("Link " + (up ? "up" : "down"));
+            if (!up && _transmitter != null) _transmitter.SetKeepAlive(false);   // out of range, app killed…
+            lock (LinkLock)
             {
-                Thread.Sleep(500);
+                _linkUp = up;
+                _linkDropped = !up;
+                _idleMs = 0;
+            }
+        }
+
+        // The native stack (nanoFramework 1.18, NimBLE) does not reliably advertise again by itself:
+        // - after a disconnection, it often stays silent;
+        // - after a failed connection attempt (BLE_GAP_EVENT_CONNECT with an error), it never advertises
+        //   again and raises no managed event at all.
+        // So, while no client is connected, advertising is restarted 0.5 s after the link drops, then every
+        // 10 s. Never while a link is open: Stop() frees the native GATT table under the client's feet (the
+        // previous version did it on the "unsubscribed" event, and Windows could soon no longer find the service).
+        private static void KeepAdvertising()
+        {
+            while (true)
+            {
+                Thread.Sleep(AdvertisingCheckMs);
+                lock (LinkLock)
+                {
+                    if (_linkUp) continue;
+                    _idleMs += AdvertisingCheckMs;
+                    bool due = _linkDropped ? _idleMs >= AfterDisconnectionMs : _idleMs >= ReadvertiseMs;
+                    if (!due) continue;
+                    _linkDropped = false;
+                    _idleMs = 0;
+                }
+
                 try
                 {
                     _bluetooth.Stop();
@@ -108,7 +154,7 @@ namespace NanoBrick
                 {
                     Debug.WriteLine("Could not restart Bluetooth: " + ex.Message);
                 }
-            }).Start();
+            }
         }
 
         // Bluetooth data can arrive in pieces: split it into lines
@@ -131,7 +177,7 @@ namespace NanoBrick
             foreach (string line in lines)
             {
                 string command = line.Trim();
-                if (command.Length > 0) Reply(_interpreter.Execute(command));
+                if (command.Length > 0) Reply(_interpreter != null ? _interpreter.Execute(command) : RadioMissing);
             }
         }
 
