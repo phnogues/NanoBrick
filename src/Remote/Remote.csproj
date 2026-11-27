@@ -10,7 +10,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Remote</RootNamespace>
     <AssemblyTitle>nanoBrick remote</AssemblyTitle>
+    <ApplicationIcon>nanobrick.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="nanobrick.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="10.0.15" />

@@ -1,10 +1,12 @@
+<img src="docs/images/logo.svg" alt="nanoBrick logo: an orange brick marked nB sending radio waves" width="120" align="right">
+
 # nanoBrick
 
-**Control AliExpress building-block motors and trains from an ESP32 + nRF24L01+, in C# (.NET nanoFramework).**
+**Control unofficial LEGO®-compatible motors and trains (AliExpress, Amazon, Temu…) from an ESP32 + nRF24L01+, in C# (.NET nanoFramework).**
 Reverse-engineered 2.4 GHz remote protocols, a Bluetooth text API, a Windows remote app, and a sniffer
 to decode your own remotes.
 
-Drive cheap **Power Functions–style motors** (the AliExpress clones: USB-C battery box, 1–4 selector
+Drive cheap **Power Functions–style motors** (the unofficial clones sold on AliExpress, Amazon, Temu…: USB-C battery box, 1–4 selector
 receivers, M / L / XL motors, servos) **from an ESP32 + nRF24L01+, without any rewiring**, by imitating
 their original 2.4 GHz remotes. The firmware is written in **C# with [.NET nanoFramework](https://www.nanoframework.net/)**
 and takes simple text commands over Bluetooth, so it can be driven from a PC app today and from

@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:Remote"
         Title="nanoBrick — remote" Width="980" Height="880" MinWidth="560" MinHeight="600"
         Background="{StaticResource PageBrush}" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14"
-        Foreground="{StaticResource InkBrush}" UseLayoutRounding="True"
+        Foreground="{StaticResource InkBrush}" UseLayoutRounding="True" Icon="nanobrick.ico"
         KeyDown="OnKeyDown" Closing="OnClosing">
     <DockPanel>
 
@@ -12,12 +12,10 @@
         <Border DockPanel.Dock="Top" Background="{StaticResource HeaderBrush}" Padding="20,14">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ContentControl Content="{StaticResource BrickLogo}" Width="40" Height="30" />
+                    <ContentControl Content="{StaticResource BrickLogo}" Width="72" Height="51" />
                     <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock FontSize="22" FontWeight="Bold" Foreground="White">
-                            <Run Text="nano" /><Run Text="Brick" Foreground="{StaticResource OrangeBrush}" />
-                        </TextBlock>
-                        <TextBlock Text="remote control for your models" Foreground="#9AA3B8" FontSize="12" Margin="1,-3,0,0" />
+                        <ContentControl Content="{StaticResource Wordmark}" Height="22" HorizontalAlignment="Left" />
+                        <TextBlock Text="remote control for your models" Foreground="#9AA3B8" FontSize="12" Margin="1,3,0,0" />
                     </StackPanel>
                 </StackPanel>
 
@@ -132,7 +130,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,4">
             <StackPanel>
                 <StackPanel x:Name="EmptyHint" HorizontalAlignment="Center" Margin="0,36,0,12">
-                    <ContentControl Content="{StaticResource BrickLogo}" Width="84" Height="63" Opacity="0.9" />
+                    <ContentControl Content="{StaticResource BrickLogo}" Width="124" Height="88" />
                     <TextBlock Text="Your garage is empty" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,14,0,4" />
                     <TextBlock Text="Add a remote for each receiver or battery box you want to drive."
                                Foreground="{StaticResource MutedBrush}" FontSize="15" HorizontalAlignment="Center" />

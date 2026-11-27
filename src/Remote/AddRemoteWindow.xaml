@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Remote"
         Title="Add a remote" Width="560" SizeToContent="Height" ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True" Icon="nanobrick.ico"
         Background="White" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14" Foreground="{StaticResource InkBrush}">
     <Window.Resources>
         <!-- A protocol choice drawn as a big selectable tile -->
