@@ -10,6 +10,10 @@ their original 2.4 GHz remotes. The firmware is written in **C# with [.NET nanoF
 and takes simple text commands over Bluetooth, so it can be driven from a PC app today and from
 **Scratch** tomorrow (the project was started so that kids can program their own trains).
 
+<p align="center">
+  <img src="hardware/images/assembly.png" alt="The transmitter in its 3D-printed case: ESP32 and nRF24 inside, LEGO Technic holes on the floor and sides, both antennas folded upright" width="420">
+</p>
+
 > Not affiliated with, endorsed or sponsored by the LEGO Group. "Power Functions" is only used to
 > describe the type of compatible hardware.
 
@@ -69,9 +73,7 @@ The adapter board has its own 3.3 V regulator, so it is powered from the ESP32's
 
 ### 3D-printed case
 
-<img src="hardware/images/assembly.png" alt="Case preview: Technic floor and side holes, ESP32 on pillars, nRF24 standing in its cradle, SMA elbow and Wi-Fi connector at the ends, clip-on lid" width="500">
-
-A PETG case that sits on LEGO Technic parts (9 × 8 hole floor, a row of holes on each long side), with
+The case shown at the top: a PETG case that sits on LEGO Technic parts (9 × 8 hole floor, a row of holes on each long side), with
 both antennas at the ends and a clip-on lid. Parametric OpenSCAD files and ready-to-print STL files, tested
 on a Creality K2: see [hardware/](hardware).
 
