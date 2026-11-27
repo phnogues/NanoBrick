@@ -20,11 +20,11 @@ Print it again if you change filament.
 
 | Part | STL | What it does |
 |---|---|---|
-| ![](images/case.png) | [transmitter_case.stl](stl/transmitter_case.stl) | The floor is a 9 Ã— 8 Technic plate, and each long side has a row of 9 horizontal holes, so the case can lie flat or stand against a build. End 1: USB-C opening and a U slot for the SMA elbow. End 2: hole for the Wi-Fi bulkhead connector and a fingernail notch. Inside: four pillars for the ESP32 and two posts to wind the spare pigtail |
+| ![](images/case.png) | [transmitter_case.stl](stl/transmitter_case.stl) | The floor is a 9 × 8 Technic plate, and each long side has a row of 9 horizontal holes, so the case can lie flat or stand against a build. End 1: USB-C opening and a U slot for the SMA elbow. End 2: hole for the Wi-Fi bulkhead connector and a fingernail notch. Inside: four pillars for the ESP32 and two posts to wind the spare pigtail |
 | ![](images/lid.png) | [transmitter_lid.stl](stl/transmitter_lid.stl) | Clips on (four tabs, no screws). Tongues close the SMA slot and the top of the USB opening. Pressers hold the ESP32 and the nRF boards down |
 | ![](images/cradle.png) | [nrf_cradle.stl](stl/nrf_cradle.stl) | Holds the nRF adapter and module standing on their edge, in the corner of the case. Small and quick to reprint if the boards do not fit |
 
-Outside size: about 72 Ã— 64 Ã— 39 mm.
+Outside size: about 72 × 64 × 39 mm.
 
 ## 3. Assembly
 
