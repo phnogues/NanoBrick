@@ -56,7 +56,17 @@ teach kids coding with the bricks they already have.
 
 - ESP32 DevKit (38 pins, tested with an ESP32-32U)
 - nRF24L01+ PA+LNA module on its 5 V adapter board
-- Wiring: see [docs/wiring.md](docs/wiring.md). A 3D-printable case is planned in [`hardware/`](hardware).
+- 7 jumper wires, no soldering
+
+<img src="docs/images/wiring.svg" alt="Wiring: ESP32 5V, GND, GPIO 4, 5, 18, 23, 19 to the adapter's VCC, GND, CE, CSN, SCK, MO, MI; the nRF24 module plugs on the adapter" width="760">
+
+| ESP32 | 5V | GND | GPIO 4 | GPIO 5 | GPIO 18 | GPIO 23 | GPIO 19 | — |
+|---|---|---|---|---|---|---|---|---|
+| **Adapter** | VCC | GND | CE | CSN | SCK | MO (MOSI) | MI (MISO) | IRQ (not connected) |
+
+The adapter board has its own 3.3 V regulator, so it is powered from the ESP32's **5V** pin. Screw the
+2.4 GHz antenna on before powering up. Details in [docs/wiring.md](docs/wiring.md); a 3D-printable case is
+planned in [`hardware/`](hardware).
 
 ## Firmware architecture
 

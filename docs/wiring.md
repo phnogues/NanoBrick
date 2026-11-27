@@ -1,5 +1,7 @@
 # Wiring
 
+![Wiring diagram](images/wiring.svg)
+
 | nRF24 adapter (5 V board) | ESP32 |
 |---|---|
 | VCC | **5V** (the adapter has its own 3.3 V regulator) |
