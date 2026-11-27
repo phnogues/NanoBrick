@@ -286,7 +286,7 @@
             </Canvas>
         </Viewbox>
 
-        <!-- Battery box with outputs A–D and its orange button -->
+        <!-- Battery box with outputs 1–4 and its orange button -->
         <Viewbox x:Key="BatteryBoxIcon" x:Shared="False">
             <Canvas Width="48" Height="40">
                 <Rectangle Canvas.Left="6" Canvas.Top="3" Width="36" Height="34" RadiusX="6" RadiusY="6" Fill="#C9CCD1" Stroke="#8D9298" StrokeThickness="1.5" />

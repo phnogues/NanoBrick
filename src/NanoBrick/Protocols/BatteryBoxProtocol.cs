@@ -20,7 +20,7 @@ namespace NanoBrick.Protocols
         /// <summary>Bytes pushed to the nRF24: 5 whitened address bytes, 10 data bytes, 2 CRC bytes.</summary>
         public const int FrameLength = 17;
 
-        /// <summary>Number of outputs (A to D).</summary>
+        /// <summary>Number of outputs (marked 1 to 4 on the box, a to d in the commands).</summary>
         public const int OutputCount = 4;
 
         /// <summary>XN297 address of the remote.</summary>

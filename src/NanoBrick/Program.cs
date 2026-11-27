@@ -19,7 +19,7 @@
 //   f                      status: longest transmission round, packets sent / failed
 //
 // 4-output battery box (white remote): on / off, full speed, no receiver to select.
-//   ha+ [n]  ha- [n] ... hd+ [n]  hd- [n]   output A to D in one direction for n × 100 ms   (default 3)
+//   ha+ [n]  ha- [n] ... hd+ [n]  hd- [n]   output 1 to 4 (a–d) in one direction for n × 100 ms (default 3)
 //   hs1 [n]  hs2 [n]       left / right square button
 //   hx [a-d]               stop one battery box output, or all of them
 //   The box pairs with the first remote it hears.

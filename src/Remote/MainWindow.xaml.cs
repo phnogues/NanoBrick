@@ -285,7 +285,7 @@ public partial class MainWindow : Window
     // A battery box output: ◀ and ▶ must be held down, like on the white remote
     private Border CreateBatteryBoxOutput(char letter)
     {
-        string name = char.ToUpper(letter).ToString();
+        string name = (letter - 'a' + 1).ToString();   // outputs are marked 1–4 on the box, a–d in the commands
 
         Button CreateHoldButton(string glyph, char direction)
         {

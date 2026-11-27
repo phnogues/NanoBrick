@@ -12,7 +12,7 @@
   <use href="#port" x="58" y="56"/><use href="#port" x="142" y="56"/>
   <use href="#port" x="58" y="244"/><use href="#port" x="142" y="244"/>
   <g font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#6b7178" text-anchor="middle">
-    <text x="58" y="30">A</text><text x="142" y="30">C</text><text x="58" y="284">B</text><text x="142" y="284">D</text>
+    <text x="58" y="30">1</text><text x="142" y="30">3</text><text x="58" y="284">2</text><text x="142" y="284">4</text>
   </g>
   <use href="#stud" x="38" y="102"/><use href="#stud" x="78" y="102"/><use href="#stud" x="122" y="102"/><use href="#stud" x="162" y="102"/>
   <use href="#stud" x="38" y="198"/><use href="#stud" x="78" y="198"/><use href="#stud" x="122" y="198"/><use href="#stud" x="162" y="198"/>

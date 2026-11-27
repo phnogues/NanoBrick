@@ -35,7 +35,7 @@ namespace NanoBrick.Transmission
         private readonly byte[][] _jm039Packets = new byte[Jm039Slots][];
         private readonly int[] _jm039SlotCommand = new int[Jm039Slots];   // command encoded in each slot, -1 = none
 
-        // Battery box: button held and frames left per output (A to D), square buttons
+        // Battery box: button held and frames left per output (1 to 4), square buttons
         private readonly int[] _boxArrow = new int[BatteryBoxProtocol.OutputCount];
         private readonly int[] _boxFramesLeft = new int[BatteryBoxProtocol.OutputCount];
         private int _boxSquares, _boxSquareFramesLeft, _boxTrailingFrames;

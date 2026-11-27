@@ -1,4 +1,4 @@
-# White remote → battery box with 4 outputs (A–D)
+# White remote → battery box with 4 outputs (1–4)
 
 USB-C battery box with an orange button and a built-in receiver, sold with a white remote
 (PCB `AW2101048`, 8 arrow buttons + 2 square buttons). Decoded with [`tools/Sniffer`](../tools/Sniffer).

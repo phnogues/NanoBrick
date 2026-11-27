@@ -82,7 +82,7 @@
                 <StackPanel>
                     <ContentControl Content="{StaticResource BatteryBoxIcon}" Width="72" Height="60" HorizontalAlignment="Left" />
                     <TextBlock Text="White remote" FontWeight="Bold" FontSize="16" Margin="0,10,0,2" />
-                    <TextBlock Text="Arrow buttons · battery box with 4 outputs A–D, on / off at full speed"
+                    <TextBlock Text="Arrow buttons · battery box with 4 outputs 1–4, on / off at full speed"
                                Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </RadioButton>

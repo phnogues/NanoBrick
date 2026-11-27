@@ -24,7 +24,7 @@ and takes simple text commands over Bluetooth, so it can be driven from a PC app
 | System | Original remote | Control | Status |
 |---|---|---|---|
 | Receiver with a 1–4 selector, 2 outputs (A/B) | grey remote with 2 wheels (PCB `JM039TX`) | speed by steps (~20–25 steps = full speed), stop | ✅ up to 4 receivers = 8 motors |
-| Battery box with 4 outputs (A–D) | white remote with 8 arrow buttons (PCB `AW2101048`) | on / off, both directions, full speed only | ✅ |
+| Battery box with 4 outputs (1–4) | white remote with 8 arrow buttons (PCB `AW2101048`) | on / off, both directions, full speed only | ✅ |
 
 Both protocols were reverse-engineered with the sniffer in [`tools/Sniffer`](tools/Sniffer) and are
 documented in [`docs/`](docs).
@@ -37,9 +37,9 @@ Each remote goes with its own receiver. Find yours (drawings, not photos):
 
 | Grey remote → selector receiver | White remote → 4-output battery box |
 |:---:|:---:|
-| <img src="docs/images/grey-remote.svg" alt="Grey remote with two orange thumb wheels" width="260"> <img src="docs/images/receiver.svg" alt="Receiver with a 1-4 selector" width="150"> | <img src="docs/images/white-remote.svg" alt="White remote with two orange arrow pads" width="270"> <img src="docs/images/battery-box.svg" alt="Battery box with outputs A to D" width="110"> |
+| <img src="docs/images/grey-remote.svg" alt="Grey remote with two orange thumb wheels" width="260"> <img src="docs/images/receiver.svg" alt="Receiver with a 1-4 selector" width="150"> | <img src="docs/images/white-remote.svg" alt="White remote with two orange arrow pads" width="270"> <img src="docs/images/battery-box.svg" alt="Battery box with outputs 1 to 4" width="110"> |
 | Two orange **thumb wheels** with notches, two orange **stop** buttons, a **1–4 selector**. PCB marked **`JM039TX`**. | Two orange **arrow pads** (A▲▼ B◀▶ on the left, C▲▼ D◀▶ on the right), two square buttons. PCB marked **`AW2101048`**. |
-| Receiver block with the **same 1–4 selector on its front** and two outputs (A, B). Up to 4 receivers, one per selector position. | Grey USB-C **battery box** with an orange button and **4 outputs A–D**; the receiver is built in. Pairs with the first remote it hears. |
+| Receiver block with the **same 1–4 selector on its front** and two outputs (A, B). Up to 4 receivers, one per selector position. | Grey USB-C **battery box** with an orange button and **4 outputs 1–4**; the receiver is built in. Pairs with the first remote it hears. |
 | Speed by steps, kept by the receiver. → [protocol](docs/protocol-jm039.md) | On / off, both directions, full speed. → [protocol](docs/protocol-battery-box.md) |
 
 Other grey thumb-wheel clones very likely use the same protocol (same look, same receiver); tell us if
@@ -140,7 +140,7 @@ Your remotes are saved for next time.
 | `x` | stop everything |
 | `k 1` / `k 0` | keep receivers "locked" (light steady) |
 | `m 1234` | receivers that are present (keep this to the ones you really have) |
-| `ha+ [n]` … `hd- [n]` | battery box: output A–D in one direction for n × 100 ms |
+| `ha+ [n]` … `hd- [n]` | battery box: output 1–4 (`a`–`d`) in one direction for n × 100 ms |
 | `hx [a-d]` | battery box: stop one output, or all |
 | `p 0-3` | radio power (keep 0 = −18 dBm: louder saturates the receivers) |
 | `f` | status |

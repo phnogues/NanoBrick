@@ -11,7 +11,7 @@ public enum RemoteKind
     /// <summary>Grey remote with 2 wheels (JM039): receiver with a 1–4 selector, outputs A and B, speed by steps.</summary>
     GreyReceiver,
 
-    /// <summary>White remote: battery box with 4 outputs A–D, on / off at full speed.</summary>
+    /// <summary>White remote: battery box with 4 outputs 1–4, on / off at full speed.</summary>
     BatteryBox,
 }
 
